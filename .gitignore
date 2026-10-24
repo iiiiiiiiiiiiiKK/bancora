@@ -7,6 +7,7 @@ tsconfig.tsbuildinfo
 # local test scratch
 tests/e2e-last.log
 tmp-*.mjs
+tmp-*.png
 tmp-*.cjs
 
 .env
