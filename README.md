@@ -1,0 +1,3 @@
+# Bancora
+
+Initialising repository…
