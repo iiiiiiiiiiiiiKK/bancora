@@ -15,7 +15,7 @@
 [![Follow on X](https://img.shields.io/badge/X-@0xkillcoin-0B1A26?style=flat-square&logo=x)](https://x.com/0xkillcoin)
 [![GitHub](https://img.shields.io/badge/repo-iiiiiiiiiiiiiKK%2Fbancora-0B1A26?style=flat-square&logo=github)](https://github.com/iiiiiiiiiiiiiKK/bancora)
 
-[在线站点](https://iiiiiiiiiiiiiKK.github.io/bancora/) · [功能](#功能) · [快速开始](#快速开始) · [文档](#文档) · [作者](https://x.com/0xkillcoin)
+[在线站点](https://bancora.pages.dev/) · [GitHub Pages 镜像](https://iiiiiiiiiiiiiKK.github.io/bancora/) · [功能](#功能) · [快速开始](#快速开始) · [文档](#文档) · [作者](https://x.com/0xkillcoin)
 
 </div>
 
@@ -185,16 +185,21 @@ WebP 校验 RIFF/WEBP 魔数、ZIP 解压后比对内部 SVG、剪贴板内容�
 
 首次使用需在仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。
 
-### Cloudflare Pages
+### Cloudflare Pages（当前主站）
 
 | 配置项 | 值 |
 | --- | --- |
+| 线上地址 | https://bancora.pages.dev/ |
 | Framework preset | Vite |
 | Build command | `npm run build` |
 | Output directory | `dist` |
 | Node version | 20 或以上 |
 
 `dist/_redirects` 已内置 SPA 回退，无需额外配置。
+
+> 注意：根路径托管（Cloudflare / Netlify / Vercel）的构建**不生成** `404.html`。
+> Cloudflare Pages 一旦发现 `404.html` 就会把未知路径当成硬 404，从而忽略 `_redirects`，
+> 导致 `/convert` 这类深链接打不开。只有 GitHub Pages 构建（`npm run build:pages`）才写 `404.html`。
 
 ### Vercel / Netlify
 
