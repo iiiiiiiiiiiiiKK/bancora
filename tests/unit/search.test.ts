@@ -66,12 +66,19 @@ describe('search', () => {
 });
 
 describe('sortAssets', () => {
+  /**
+   * Compare against the same collator the implementation uses. The default
+   * `localeCompare` result differs between Windows and Linux runners, which made
+   * CI fail on an ordering that is correct for the app.
+   */
+  const collator = new Intl.Collator(['zh-Hans-CN', 'en'], { numeric: true, sensitivity: 'base' });
+
   it('sorts by name in both directions without mutating the input', () => {
     const copy = [...assets];
     const asc = sortAssets(assets, 'name-asc');
     const desc = sortAssets(assets, 'name-desc');
     expect(assets).toEqual(copy);
-    expect(asc.map((a) => a.name)).toEqual([...asc.map((a) => a.name)].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN')));
+    expect(asc.map((a) => a.name)).toEqual([...asc.map((a) => a.name)].sort((a, b) => collator.compare(a, b)));
     expect(desc[0].name).toBe(asc[asc.length - 1].name);
   });
 
@@ -82,6 +89,6 @@ describe('sortAssets', () => {
 
   it('sorts by file name', () => {
     const names = sortAssets(assets, 'filename-asc').map((a) => a.filename);
-    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+    expect(names).toEqual([...names].sort((a, b) => collator.compare(a, b)));
   });
 });
