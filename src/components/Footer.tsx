@@ -33,6 +33,21 @@ export function Footer() {
             </p>
           </div>
 
+          <div className="footer__stats" aria-hidden>
+            <div className="footer__stat">
+              <span className="footer__stat-value">606</span>
+              <span className="footer__stat-label">{zh ? 'SVG 素材' : 'SVG assets'}</span>
+            </div>
+            <div className="footer__stat">
+              <span className="footer__stat-value">MIT</span>
+              <span className="footer__stat-label">{zh ? '开源许可' : 'licence'}</span>
+            </div>
+            <div className="footer__stat">
+              <span className="footer__stat-value">100%</span>
+              <span className="footer__stat-label">{zh ? '本地处理' : 'in-browser'}</span>
+            </div>
+          </div>
+
           <nav className="footer__links" aria-label={zh ? '页脚导航' : 'Footer navigation'}>
             <Link to="/">{t('nav.explore')}</Link>
             <Link to="/convert">{t('nav.convert')}</Link>

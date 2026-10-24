@@ -251,6 +251,33 @@ async function main() {
     return `${boxes.length} controls · all ${heights[0]}px tall, tops aligned`;
   });
 
+  await test('hero statistics form an aligned four-column table', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.stats .stat');
+    await page.waitForTimeout(300);
+    const data = await page.evaluate(() => {
+      const cells = [...document.querySelectorAll('.stats .stat')];
+      const rowTops = (sel) => [...new Set(cells.map((c) => Math.round(c.querySelector(sel).getBoundingClientRect().top)))];
+      return {
+        count: cells.length,
+        widths: [...new Set(cells.map((c) => Math.round(c.getBoundingClientRect().width)))],
+        heights: [...new Set(cells.map((c) => Math.round(c.getBoundingClientRect().height)))],
+        labelTops: rowTops('.stat__label'),
+        valueTops: rowTops('.stat__value'),
+        hintTops: rowTops('.stat__hint'),
+        values: cells.map((c) => c.querySelector('.stat__value').textContent),
+        clipped: cells.filter((c) => [...c.querySelectorAll('.stat__label, .stat__hint')].some((e) => e.scrollWidth > e.clientWidth + 1)).length,
+      };
+    });
+    assert(data.count === 4, `expected 4 stats, saw ${data.count}`);
+    assert(data.widths.length === 1, `uneven widths: ${data.widths.join(', ')}`);
+    assert(data.heights.length === 1, `uneven heights: ${data.heights.join(', ')}`);
+    assert(data.labelTops.length === 1 && data.valueTops.length === 1 && data.hintTops.length === 1, 'stat rows are not aligned');
+    assert(data.clipped === 0, 'a stat label or hint is clipped');
+    assert(data.values[0] === '606', `unexpected total ${data.values[0]}`);
+    return `4 cells · ${data.widths[0]}×${data.heights[0]} · ${data.values.join(' / ')}`;
+  });
+
   await test('variant filter narrows the collection', async () => {
     await page.getByRole('button', { name: /^横版组合/ }).first().click();
     await page.waitForTimeout(250);

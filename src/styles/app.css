@@ -352,11 +352,11 @@
   }
 }
 
-.hero__stats {
+.stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
-  margin-top: var(--s7);
+  margin: var(--s6) 0 0;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--line);
@@ -364,26 +364,50 @@
 }
 
 .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   background: var(--surface);
-  padding: 12px 14px;
+  padding: 11px 14px 12px;
   min-width: 0;
 }
 
+.stat__label {
+  order: 0;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .stat__value {
+  order: 1;
+  margin: 0;
   font-family: var(--font-display);
-  font-size: 1.375rem;
+  font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  line-height: 1.15;
+  color: var(--ink);
   white-space: nowrap;
 }
 
-.stat__label {
-  font-size: 0.71875rem;
-  color: var(--muted);
-  margin-top: 3px;
-  line-height: 1.35;
+.stat__hint {
+  order: 2;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .showcase {
@@ -987,8 +1011,14 @@
 .load-more__btn {
   flex: none;
   height: 42px;
-  padding: 0 18px;
-  gap: 8px;
+  padding: 0 16px;
+  gap: 7px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.load-more__btn > * {
+  flex: none;
 }
 
 .load-more__count {
@@ -1883,9 +1913,65 @@
 
 .footer__top {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: var(--s6);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  grid-template-rows: auto auto;
+  gap: var(--s5) var(--s8);
+  align-items: start;
   padding-bottom: var(--s5);
+}
+
+.footer__brand {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.footer__stats {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
+}
+
+.footer__cols {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+/* Brand block on the left, a compact credibility strip on the right. */
+.footer__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+  align-self: start;
+}
+
+.footer__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 10px 12px;
+  background: var(--surface-raised);
+  min-width: 0;
+}
+
+.footer__stat-value {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.footer__stat-label {
+  font-size: 0.625rem;
+  color: var(--muted);
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .footer__links {
@@ -2030,7 +2116,15 @@
 
   .footer__top {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
     gap: var(--s5);
+  }
+
+  .footer__brand,
+  .footer__stats,
+  .footer__cols {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .footer__cols {
@@ -2114,7 +2208,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .hero__stats {
+  .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -2182,15 +2276,19 @@
   }
 
   .stat {
-    padding: 10px 11px;
+    padding: 9px 11px 10px;
   }
 
   .stat__value {
-    font-size: 1.1875rem;
+    font-size: 1.3125rem;
   }
 
   .stat__label {
-    font-size: 0.6875rem;
+    font-size: 0.65625rem;
+  }
+
+  .stat__hint {
+    font-size: 0.59375rem;
   }
 
   .explorer__bar {
@@ -2285,10 +2383,12 @@
   .filters-toggle {
     display: flex;
     align-items: center;
-    gap: 7px;
+    flex-wrap: nowrap;
+    gap: 6px;
     width: 100%;
     height: 40px;
-    padding: 0 12px;
+    padding: 0 11px;
+    white-space: nowrap;
     border: 1px solid var(--line);
     border-radius: var(--r-sm);
     background: var(--surface);
@@ -2538,9 +2638,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .hero__stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+
 
   .btn {
     padding: 0 12px;
