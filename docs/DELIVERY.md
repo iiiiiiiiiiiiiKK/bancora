@@ -140,6 +140,17 @@ extracts exported ZIPs and compares the SVGs inside, and reads back the clipboar
 
 ---
 
+## 5b. Live deployments
+
+| Host | URL | Notes |
+| --- | --- | --- |
+| Cloudflare Pages | https://bancora.pages.dev/ | Root-host build, clean paths (/convert, /inspector…), `_redirects` SPA fallback |
+| GitHub Pages | https://iiiiiiiiiiiiiKK.github.io/bancora/ | Project build, hash routing (`#/convert`), automated workflow |
+
+The legacy `https://321.market/bancora/` path does **not** exist: 321.market is served by the
+`adam-3d-portfolio` Pages project, which owns the custom domain and has no `/bancora` route.
+Use `bancora.pages.dev` (clean URLs) or the GitHub Pages project URL (hash URLs).
+
 ## 6. Deploying
 
 ```bash
