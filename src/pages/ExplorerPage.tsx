@@ -12,7 +12,7 @@ import { fetchSvgText, downloadText } from '../lib/browser';
 import { pushToast } from '../lib/toast';
 import { assetUrl, withBase } from '../lib/paths';
 import type { Asset } from '../types/asset';
-import { AlertCircleIcon, ArrowRightIcon, DownloadIcon, FilterIcon, SearchIcon, StarIcon } from '../components/Icons';
+import { AlertCircleIcon, ArrowRightIcon, DownloadIcon, FileIcon, FilterIcon, SearchIcon, StarIcon } from '../components/Icons';
 
 const PAGE_SIZE = 72;
 
@@ -121,7 +121,8 @@ export function ExplorerPage() {
                   <DownloadIcon />
                   {t('hero.basket')}
                 </button>
-                <a className="btn btn--ghost btn--lg" href={withBase('/data/assets.json')} download>
+                <a className="btn btn--soft btn--lg" href={withBase('/data/assets.json')} download>
+                  <FileIcon />
                   {t('hero.index')}
                 </a>
               </div>
@@ -236,12 +237,21 @@ export function ExplorerPage() {
                   </div>
 
                   {visible < filtered.length ? (
-                    <div style={{ display: 'grid', placeItems: 'center', marginTop: 24 }}>
-                      <button type="button" className="btn btn--lg" onClick={() => setVisible((value) => value + PAGE_SIZE)}>
-                        {t('results.loadMore')}
-                        <span className="mono" style={{ color: 'var(--muted)' }}>
-                          {visible}/{filtered.length}
+                    <div className="load-more">
+                      <div className="load-more__meta">
+                        <span>
+                          {t('results.showingN')}{' '}
+                          <strong>
+                            {visible} / {filtered.length}
+                          </strong>
                         </span>
+                        <div className="load-more__track" aria-hidden>
+                          <span style={{ width: `${Math.min(100, Math.round((visible / filtered.length) * 100))}%` }} />
+                        </div>
+                      </div>
+                      <button type="button" className="btn btn--primary load-more__btn" onClick={() => setVisible((value) => value + PAGE_SIZE)}>
+                        {t('results.loadMore')}
+                        <span className="load-more__count">+{Math.min(PAGE_SIZE, filtered.length - visible)}</span>
                       </button>
                     </div>
                   ) : null}

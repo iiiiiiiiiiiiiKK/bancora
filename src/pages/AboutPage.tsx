@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatBytes, formatDateTime, formatNumber, percent } from '../lib/format';
 import { withBase } from '../lib/paths';
-import { LogoPlate } from '../components/LogoImage';
+import { LogoImage } from '../components/LogoImage';
 import { resolvePlate } from '../lib/plate';
 
 const PALETTE = [
@@ -129,8 +129,8 @@ export function AboutPage() {
               {current ? (
                 <div className="card-plain">
                   <div className="section-label">{zh ? '真实素材预览' : 'Real asset preview'}</div>
-                  <div className="plate" data-plate={plate} style={{ height: 130 }}>
-                    <LogoPlate asset={current} plate={plate} alt={`${current.name} preview`} />
+                  <div className="plate asset-preview" data-plate={plate}>
+                    <LogoImage asset={current} plate={plate} alt={`${current.name} preview`} loading="lazy" />
                   </div>
                   <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
                     <span style={{ fontSize: '0.8125rem' }}>{current.name}</span>

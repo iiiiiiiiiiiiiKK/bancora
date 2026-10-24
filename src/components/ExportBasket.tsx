@@ -9,7 +9,7 @@ import { pushToast } from '../lib/toast';
 import { formatBytes } from '../lib/format';
 import { resolvePlate } from '../lib/plate';
 import { ArchiveIcon, DownloadIcon, TrashIcon, XIcon } from './Icons';
-import { LogoPlate } from './LogoImage';
+import { LogoImage } from './LogoImage';
 
 interface ExportBasketProps {
   assets: Asset[];
@@ -146,7 +146,7 @@ export function ExportBasket({ assets, onRemove, onClear, onClose, open }: Expor
                 {assets.map((asset) => (
                   <div className="source-item" key={asset.id}>
                     <div className="source-item__thumb">
-                      <LogoPlate asset={asset} plate={resolvePlate(asset, 'auto', preferences.theme)} alt="" />
+                      <LogoImage asset={asset} plate={resolvePlate(asset, 'auto', preferences.theme)} alt="" />
                     </div>
                     <div className="source-item__body">
                       <div className="source-item__name">{asset.name}</div>

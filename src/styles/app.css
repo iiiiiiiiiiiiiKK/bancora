@@ -936,6 +936,68 @@
   flex: none;
 }
 
+/* ------------------------------------------------------------- load more */
+
+.load-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s5);
+  margin-top: var(--s6);
+  padding: var(--s4) var(--s5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.load-more__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 340px;
+  font-size: 0.78125rem;
+  color: var(--muted);
+}
+
+.load-more__meta strong {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.78125rem;
+}
+
+.load-more__track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.load-more__track span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 220ms var(--ease);
+}
+
+.load-more__btn {
+  flex: none;
+  height: 42px;
+  padding: 0 18px;
+  gap: 8px;
+}
+
+.load-more__count {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--paper) 18%, transparent);
+}
+
 /* --------------------------------------------------------- selection tray */
 
 .tray {
@@ -1585,8 +1647,17 @@
 }
 
 .thumb img {
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
+  object-fit: contain;
+}
+
+/* Small thumbnails render a bare <img>; make it fill the tile predictably. */
+.source-item__thumb img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
@@ -1725,6 +1796,21 @@
   align-items: center;
   padding: clamp(28px, 4vw, 48px) 0;
   border-bottom: 1px solid var(--line);
+}
+
+/* Fixed-height preview inside the About card. Percentage max-height on a grid
+   item does not always resolve, so this variant clamps in absolute units. */
+.asset-preview {
+  height: 132px;
+  padding: 12px;
+}
+
+.asset-preview img {
+  max-width: 68%;
+  max-height: 104px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 .brand-plate {
@@ -2257,6 +2343,21 @@
 
   .results__head .btn {
     flex: 1 1 auto;
+  }
+
+  .load-more {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .load-more__meta {
+    max-width: none;
+  }
+
+  .load-more__btn {
+    width: 100%;
   }
 
   .dialog {

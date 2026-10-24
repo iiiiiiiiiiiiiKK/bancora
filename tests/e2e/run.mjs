@@ -134,6 +134,54 @@ async function main() {
     return `${sizes[0]} bytes first`;
   });
 
+  await test('load more appends a page and updates the progress strip', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForSelector('[data-testid="logo-grid"] article');
+    const before = await page.locator('[data-testid="logo-grid"] article').count();
+    const meta = await page.locator('.load-more__meta').textContent();
+    assert(meta?.includes('72 / 606'), `unexpected counter: ${meta}`);
+    await page.locator('.load-more__btn').click();
+    await page.waitForTimeout(600);
+    const after = await page.locator('[data-testid="logo-grid"] article').count();
+    assert(after === before + 72, `expected 144 cards, saw ${after}`);
+    const metaAfter = await page.locator('.load-more__meta').textContent();
+    assert(metaAfter?.includes('144 / 606'), `counter did not advance: ${metaAfter}`);
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    return `72 → ${after}, counter 144 / 606`;
+  });
+
+  await test('about page renders the real asset preview at a usable size', async () => {
+    await page.goto(`${BASE}/about`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.asset-preview img');
+    await page.waitForTimeout(400);
+    const box = await page.evaluate(() => {
+      const plate = document.querySelector('.asset-preview');
+      const img = plate.querySelector('img');
+      const pr = plate.getBoundingClientRect();
+      const ir = img.getBoundingClientRect();
+      return { plate: [Math.round(pr.width), Math.round(pr.height)], img: [Math.round(ir.width), Math.round(ir.height)], natural: img.naturalWidth };
+    });
+    assert(box.img[0] > 40 && box.img[1] > 40, `preview is too small: ${JSON.stringify(box)}`);
+    assert(box.img[1] <= box.plate[1], 'preview overflows its plate');
+    return `${box.img[0]}×${box.img[1]} inside ${box.plate[0]}×${box.plate[1]}`;
+  });
+
+  await test('hero secondary buttons are visibly styled', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(300);
+    const styles = await page.evaluate(() =>
+      [...document.querySelectorAll('.hero__actions > *')].map((el) => ({
+        text: el.textContent.trim(),
+        bg: getComputedStyle(el).backgroundColor,
+        transparent: getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)',
+      })),
+    );
+    const ghost = styles.filter((s) => s.transparent);
+    assert(styles.length === 3, `expected 3 hero actions, saw ${styles.length}`);
+    assert(ghost.length === 0, `buttons have no background: ${ghost.map((s) => s.text).join(', ')}`);
+    return styles.map((s) => `${s.text}: ${s.bg}`).join(' · ');
+  });
+
   await test('variant filter narrows the collection', async () => {
     await page.getByRole('button', { name: /^横版组合/ }).first().click();
     await page.waitForTimeout(250);

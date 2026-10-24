@@ -48,7 +48,13 @@ export function LogoImage({ asset, className, loading = 'lazy', sizes, alt, plat
   );
 }
 
-/** Convenience wrapper: plate + image, used by cards and thumbnails. */
+/**
+ * Convenience wrapper: plate + image.
+ *
+ * The plate is a grid item, so it has no intrinsic width — place it inside a
+ * sized container (card preview, dialog stage, showcase) or use <LogoImage>
+ * directly inside your own plate/thumb wrapper.
+ */
 export function LogoPlate({
   asset,
   plate,

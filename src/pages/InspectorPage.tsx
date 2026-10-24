@@ -5,7 +5,7 @@ import { formatBytes } from '../lib/format';
 import { triggerDownload } from '../lib/browser';
 import { pushToast } from '../lib/toast';
 import { AlertCircleIcon, AlertIcon, CheckIcon, FileIcon, InfoIcon, ShieldIcon, UploadIcon } from '../components/Icons';
-import { LogoPlate } from '../components/LogoImage';
+import { LogoImage } from '../components/LogoImage';
 import { resolvePlate } from '../lib/plate';
 import type { Asset } from '../types/asset';
 
@@ -351,7 +351,7 @@ export function InspectorPage() {
                           <div className="row" style={{ gap: 9, flexWrap: 'nowrap' }}>
                             <span className="thumb">
                               {row.asset ? (
-                                <LogoPlate asset={row.asset} plate={resolvePlate(row.asset, 'auto', preferences.theme)} alt="" />
+                                <LogoImage asset={row.asset} plate={resolvePlate(row.asset, 'auto', preferences.theme)} alt="" />
                               ) : (
                                 <FileIcon width={13} height={13} />
                               )}

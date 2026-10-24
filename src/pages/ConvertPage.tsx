@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { LogoPlate } from '../components/LogoImage';
+import { LogoImage } from '../components/LogoImage';
 import {
   convertSvg,
   convertBatchToZip,
@@ -531,7 +531,7 @@ export function ConvertPage() {
                       style={{ border: '1px solid var(--line)', cursor: 'pointer' }}
                     >
                       <div className="source-item__thumb">
-                        <LogoPlate asset={asset} plate={resolvePlate(asset, 'auto', preferences.theme)} alt="" />
+                        <LogoImage asset={asset} plate={resolvePlate(asset, 'auto', preferences.theme)} alt="" />
                       </div>
                       <div className="source-item__body">
                         <div className="source-item__name">{asset.name}</div>

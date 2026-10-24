@@ -349,6 +349,23 @@ hr {
   border-color: var(--accent-strong);
 }
 
+.btn--soft {
+  --btn-bg: var(--accent-soft);
+  --btn-ink: var(--accent);
+  --btn-line: var(--accent-line);
+  font-weight: 600;
+}
+
+.btn--soft:hover {
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent));
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+:root[data-theme='dark'] .btn--soft:hover {
+  color: var(--accent-ink);
+}
+
 .btn--ghost {
   --btn-bg: transparent;
   --btn-line: transparent;
