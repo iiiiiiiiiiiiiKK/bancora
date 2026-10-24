@@ -82,6 +82,15 @@ BANCORA_SITE_URL=https://your-domain.example npm run seo
 npm run build
 ```
 
+### Host-specific notes
+
+- **Cloudflare Pages / Netlify / Vercel** serve unknown paths from `index.html`
+  automatically. The build therefore **does not** emit `404.html` for these hosts: a
+  404.html next to `_redirects` makes Cloudflare treat unknown paths as hard 404s and
+  ignore the redirects file.
+- **GitHub Pages** cannot rewrite paths, so `npm run build:pages` writes `404.html`
+  and `.nojekyll` and builds with hash routing (`VITE_ROUTER=hash`).
+
 ## Release checklist
 
 ```bash

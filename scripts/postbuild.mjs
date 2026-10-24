@@ -21,14 +21,18 @@ if (!existsSync(join(dist, 'index.html'))) {
   process.exit(1);
 }
 
-// Deep-link fallback: used by GitHub Pages and by static hosts without rewrites.
-copyFileSync(join(dist, 'index.html'), join(dist, '404.html'));
-
 if (pages) {
+  // GitHub Pages cannot rewrite paths, so a 404.html copy of the shell is the
+  // deep-link fallback there.
+  copyFileSync(join(dist, 'index.html'), join(dist, '404.html'));
   writeFileSync(join(dist, '.nojekyll'), '', 'utf8');
   console.log('GitHub Pages build: wrote 404.html and .nojekyll.');
   process.exit(0);
 }
+
+// Cloudflare Pages / Netlify / Vercel apply their own SPA fallback. Shipping a
+// 404.html would make Cloudflare Pages treat unknown paths as hard 404s and
+// ignore _redirects, so it is deliberately not written here.
 
 writeFileSync(join(dist, '_redirects'), '/*  /index.html  200\n', 'utf8');
 
@@ -74,4 +78,4 @@ writeFileSync(
   'utf8',
 );
 
-console.log('Wrote 404.html, _redirects, vercel.json and netlify.toml into dist/.');
+console.log('Wrote _redirects, vercel.json and netlify.toml into dist/.');
