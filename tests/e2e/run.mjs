@@ -270,6 +270,13 @@ async function main() {
       };
     });
     assert(data.count === 4, `expected 4 stats, saw ${data.count}`);
+    const spans = await page.evaluate(() => {
+      const stats = document.querySelector('.stats').getBoundingClientRect();
+      const hero = document.querySelector('.hero .shell').getBoundingClientRect();
+      const grid = document.querySelector('.hero__grid').getBoundingClientRect();
+      return { statsW: Math.round(stats.width), gridW: Math.round(grid.width), delta: Math.round(Math.abs(stats.width - grid.width)) };
+    });
+    assert(spans.delta <= 2, `stats band (${spans.statsW}px) does not span the hero grid (${spans.gridW}px)`);
     assert(data.widths.length === 1, `uneven widths: ${data.widths.join(', ')}`);
     assert(data.heights.length === 1, `uneven heights: ${data.heights.join(', ')}`);
     assert(data.labelTops.length === 1 && data.valueTops.length === 1 && data.hintTops.length === 1, 'stat rows are not aligned');

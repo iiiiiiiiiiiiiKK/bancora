@@ -130,11 +130,14 @@ export function ExplorerPage() {
                   {t('hero.index')}
                 </a>
               </div>
-              <StatsBar />
             </div>
 
             <HeroShowcase assets={assets} />
           </div>
+
+          {/* Full-width stat band: spans both hero columns so the bottom of the
+              hero reads as one balanced row instead of trailing off to the right. */}
+          <StatsBar />
         </div>
       </section>
 
