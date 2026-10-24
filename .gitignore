@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.tmp-e2e/
+package-lock.json
+tsconfig.tsbuildinfo
+
+# local test scratch
+tests/e2e-last.log
+tmp-*.mjs
+tmp-*.cjs
+
+.env
+.env.local
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

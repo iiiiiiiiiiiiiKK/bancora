@@ -1,0 +1,12 @@
+{
+  "name": "Bancora — Open Bank Asset Toolkit",
+  "short_name": "Bancora",
+  "description": "Discover, download, convert, and integrate bank logos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5F1",
+  "theme_color": "#0B1F33",
+  "icons": [
+    { "src": "/brand/bancora-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
