@@ -3,8 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { GithubIcon, MenuIcon, MoonIcon, StarIcon, SunIcon, XIcon } from './Icons';
 import { withBase } from '../lib/paths';
-
-const AUTHOR_URL = 'https://x.com/0xkillcoin';
+import { AUTHOR_URL, PROJECT_REPO } from '../lib/links';
 
 const LINKS = [
   { to: '/', labelKey: 'nav.explore', end: true },
@@ -91,11 +90,11 @@ export function Header() {
 
           <a
             className="icon-btn header__github"
-            href="https://github.com/icongo/bank-logos"
+            href={PROJECT_REPO}
             target="_blank"
             rel="noreferrer noopener"
-            aria-label={lang === 'zh' ? '上游素材仓库（新窗口打开）' : 'Upstream repository on GitHub (opens in a new tab)'}
-            title={lang === 'zh' ? '上游素材仓库' : 'Upstream repository'}
+            aria-label={lang === 'zh' ? 'Bancora 开源仓库（新窗口打开）' : 'Bancora repository on GitHub (opens in a new tab)'}
+            title={lang === 'zh' ? '开源仓库' : 'Source repository'}
           >
             <GithubIcon />
           </a>
@@ -131,16 +130,17 @@ export function Header() {
               to={link.to}
               end={'end' in link ? link.end : false}
               className={({ isActive }) => (isActive ? 'active' : '')}
+              onClick={() => setMenuOpen(false)}
             >
               {t(link.labelKey)}
               <span aria-hidden>→</span>
             </NavLink>
           ))}
-          <a href={AUTHOR_URL} target="_blank" rel="noreferrer noopener">
+          <a href={AUTHOR_URL} target="_blank" rel="noreferrer noopener" onClick={() => setMenuOpen(false)}>
             {lang === 'zh' ? '作者 𝕏' : 'Author on 𝕏'}
             <span aria-hidden>↗</span>
           </a>
-          <a href="https://github.com/icongo/bank-logos" target="_blank" rel="noreferrer noopener">
+          <a href={PROJECT_REPO} target="_blank" rel="noreferrer noopener" onClick={() => setMenuOpen(false)}>
             GitHub
             <span aria-hidden>↗</span>
           </a>

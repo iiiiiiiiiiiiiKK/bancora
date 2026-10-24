@@ -2,8 +2,7 @@ import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { withBase } from '../lib/paths';
 import { DownloadIcon } from './Icons';
-
-const AUTHOR_URL = 'https://x.com/0xkillcoin';
+import { AUTHOR_URL, PROJECT_REPO, UPSTREAM_REPO } from '../lib/links';
 
 /**
  * Footer layout:
@@ -47,7 +46,7 @@ export function Footer() {
             <a href={AUTHOR_URL} target="_blank" rel="noreferrer noopener">
               𝕏
             </a>
-            <a href="https://github.com/icongo/bank-logos" target="_blank" rel="noreferrer noopener">
+            <a href={PROJECT_REPO} target="_blank" rel="noreferrer noopener">
               GitHub
             </a>
           </nav>
@@ -97,8 +96,11 @@ export function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/icongo/bank-logos" target="_blank" rel="noreferrer noopener">
-                    {zh ? '上游仓库' : 'Upstream repository'}
+                  <a href={PROJECT_REPO} target="_blank" rel="noreferrer noopener">
+                    {zh ? '开源仓库' : 'Source repository'}
+                  </a>
+                  <a href={UPSTREAM_REPO} target="_blank" rel="noreferrer noopener">
+                    {zh ? '上游素材库' : 'Upstream collection'}
                   </a>
                 </li>
                 <li>

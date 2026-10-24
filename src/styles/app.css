@@ -1692,15 +1692,22 @@
   font-size: 0.8125rem;
 }
 
-.docs__nav a {
+/* Section links are buttons (no URL hash) but keep the link-like affordance. */
+.docs__nav a,
+.docs__nav button {
   padding: 6px 10px;
   border-left: 2px solid transparent;
   color: var(--muted-strong);
   border-radius: 0 4px 4px 0;
   white-space: nowrap;
+  text-align: left;
+  font-size: inherit;
+  background: none;
+  transition: color 120ms var(--ease), background-color 120ms var(--ease);
 }
 
-.docs__nav a:hover {
+.docs__nav a:hover,
+.docs__nav button:hover {
   color: var(--ink);
   background: color-mix(in srgb, var(--ink) 4%, transparent);
 }
@@ -2007,12 +2014,17 @@
     border-bottom: 1px solid var(--line);
   }
 
-  .docs__nav a {
+  .docs__nav a,
+  .docs__nav button {
     border: 1px solid var(--line);
     border-left: 1px solid var(--line);
     border-radius: 999px;
     padding: 4px 11px;
     font-size: 0.75rem;
+  }
+
+  .docs__nav button {
+    padding: 4px 11px;
   }
 
   .footer__top {

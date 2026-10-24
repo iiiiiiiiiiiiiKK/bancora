@@ -75,9 +75,13 @@ export function BankBadge(props: ImgHTMLAttributes<HTMLImageElement>) {
       <div className="shell docs">
         <nav className="docs__nav" aria-label={zh ? '文档目录' : 'Documentation sections'}>
           {SECTIONS.map((section) => (
-            <a key={section.id} href={`#${section.id}`}>
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            >
               {section.label}
-            </a>
+            </button>
           ))}
         </nav>
 

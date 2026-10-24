@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { LogoImage } from '../components/LogoImage';
 import {
@@ -10,7 +11,7 @@ import {
   MIN_DIMENSION,
   type OutputFormat,
 } from '../lib/convert';
-import { assetUrl, withBase } from '../lib/paths';
+import { assetUrl } from '../lib/paths';
 import { fetchSvgText, triggerDownload } from '../lib/browser';
 import { pushToast } from '../lib/toast';
 import { formatBytes } from '../lib/format';
@@ -486,9 +487,9 @@ export function ConvertPage() {
               </div>
               <div className="panel__body stack stack--sm">
                 <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.75 }}>{t('convert.outNote')}</p>
-                <a className="btn btn--sm" href={withBase('/developer#conversion')}>
+                <Link className="btn btn--sm" to="/developer">
                   {t('nav.developer')}
-                </a>
+                </Link>
               </div>
             </section>
           </div>

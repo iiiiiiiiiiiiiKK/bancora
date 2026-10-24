@@ -113,10 +113,14 @@ export function ExplorerPage() {
               </h1>
               <p className="hero__lede">{t('hero.lede')}</p>
               <div className="hero__actions">
-                <a href="#explorer" className="btn btn--primary btn--lg">
+                <button
+                  type="button"
+                  className="btn btn--primary btn--lg"
+                  onClick={() => document.getElementById('explorer')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                >
                   {t('hero.explore')}
                   <ArrowRightIcon />
-                </a>
+                </button>
                 <button type="button" className="btn btn--lg" onClick={() => setBasketOpen(true)}>
                   <DownloadIcon />
                   {t('hero.basket')}

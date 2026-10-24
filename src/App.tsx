@@ -36,9 +36,20 @@ export function App() {
   return (
     <AppProvider>
       <RouteEffects />
-      <a className="skip-link" href="#main">
+      <button
+        type="button"
+        className="skip-link"
+        onClick={() => {
+          // A plain `href="#main"` would be read as a route by the hash router
+          // used on GitHub Pages, so move focus programmatically instead.
+          const main = document.getElementById('main');
+          main?.setAttribute('tabindex', '-1');
+          main?.focus({ preventScroll: true });
+          main?.scrollIntoView({ block: 'start' });
+        }}
+      >
         跳到主要内容
-      </a>
+      </button>
       <Header />
       <main id="main" className="page">
         <Routes>

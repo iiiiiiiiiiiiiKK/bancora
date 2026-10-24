@@ -182,6 +182,52 @@ async function main() {
     return styles.map((s) => `${s.text}: ${s.bg}`).join(' · ');
   });
 
+  await test('hero primary action scrolls to the grid without changing the URL', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+    const before = page.url();
+    await page.getByRole('button', { name: /浏览素材|Explore logos/ }).click();
+    await page.waitForTimeout(800);
+    const scrolled = await page.evaluate(() => window.scrollY);
+    const gridVisible = await page.evaluate(() => {
+      const grid = document.getElementById('explorer');
+      return grid ? grid.getBoundingClientRect().top < 400 : false;
+    });
+    assert(scrolled > 100, `page did not scroll (scrollY=${scrolled})`);
+    assert(gridVisible, 'logo grid is not in view after clicking the hero action');
+    assert(page.url() === before, `URL changed to ${page.url()}`);
+    return `scrollY ${scrolled}`;
+  });
+
+  await test('mobile menu navigates home and closes itself', async () => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const mp = await ctx.newPage();
+    await mp.goto(`${BASE}/convert`, { waitUntil: 'networkidle' });
+    await mp.waitForTimeout(500);
+    await mp.getByRole('button', { name: /打开导航菜单|Open navigation menu/ }).click();
+    await mp.waitForTimeout(250);
+    await mp.locator('.mobile-nav a').first().click();
+    await mp.waitForTimeout(800);
+    const menuVisible = await mp.locator('#mobile-navigation').isVisible();
+    const path = new URL(mp.url()).pathname;
+    assert(menuVisible === false, 'mobile menu stayed open after navigating');
+    assert(path.endsWith('/') || path.endsWith('/bancora'), `did not return home: ${path}`);
+    await ctx.close();
+    return 'closed + home';
+  });
+
+  await test('header and footer link to the project repository', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+    const headerHref = await page.locator('.header__github').getAttribute('href');
+    assert(headerHref === 'https://github.com/iiiiiiiiiiiiiKK/bancora', `header points at ${headerHref}`);
+    const footerHrefs = await page.evaluate(() =>
+      [...document.querySelectorAll('.footer a[href*="github.com"]')].map((a) => a.getAttribute('href')),
+    );
+    assert(footerHrefs.includes('https://github.com/iiiiiiiiiiiiiKK/bancora'), `footer links: ${footerHrefs.join(', ')}`);
+    return headerHref;
+  });
+
   await test('variant filter narrows the collection', async () => {
     await page.getByRole('button', { name: /^横版组合/ }).first().click();
     await page.waitForTimeout(250);
