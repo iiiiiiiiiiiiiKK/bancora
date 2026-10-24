@@ -278,6 +278,29 @@ async function main() {
     return `4 cells · ${data.widths[0]}×${data.heights[0]} · ${data.values.join(' / ')}`;
   });
 
+  await test('every header icon button is the same square size', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(300);
+    const info = await page.evaluate(() => {
+      const buttons = [...document.querySelectorAll('.header__actions > *')].filter((el) => el.getBoundingClientRect().width > 0);
+      const sizes = buttons.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { w: Math.round(r.width), h: Math.round(r.height), top: Math.round(r.top) };
+      });
+      return {
+        count: buttons.length,
+        sizes: [...new Set(sizes.map((s) => `${s.w}x${s.h}`))],
+        square: sizes.every((s) => s.w === s.h),
+        tops: [...new Set(sizes.map((s) => s.top))],
+      };
+    });
+    assert(info.count >= 5, `expected at least 5 header controls, saw ${info.count}`);
+    assert(info.square, `header controls are not square: ${info.sizes.join(', ')}`);
+    assert(info.sizes.length === 1, `header control sizes differ: ${info.sizes.join(', ')}`);
+    assert(info.tops.length === 1, 'header controls are not vertically aligned');
+    return `${info.count} controls · all ${info.sizes[0]}`;
+  });
+
   await test('variant filter narrows the collection', async () => {
     await page.getByRole('button', { name: /^横版组合/ }).first().click();
     await page.waitForTimeout(250);

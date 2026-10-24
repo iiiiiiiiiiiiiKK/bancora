@@ -81,6 +81,8 @@
 
   /* One height for every compact control: sort, segmented groups, chips, small buttons. */
   --control-h: 34px;
+  /* Header icon buttons are square; one value drives width and height. */
+  --header-btn: 36px;
   --header-h: 62px;
   --page-max: 1360px;
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);

@@ -11,7 +11,7 @@
 [![SVG logos](https://img.shields.io/badge/SVG_logos-606-0C6B5B?style=flat-square)](https://github.com/iiiiiiiiiiiiiKK/bancora)
 [![MIT license](https://img.shields.io/badge/license-MIT-0B1A26?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-73_passing-0C6B5B?style=flat-square)](#测试)
-[![Browser checks](https://img.shields.io/badge/browser_checks-33%2F33-0C6B5B?style=flat-square)](#测试)
+[![Browser checks](https://img.shields.io/badge/browser_checks-34%2F34-0C6B5B?style=flat-square)](#测试)
 [![Follow on X](https://img.shields.io/badge/X-@0xkillcoin-0B1A26?style=flat-square&logo=x)](https://x.com/0xkillcoin)
 [![GitHub](https://img.shields.io/badge/repo-iiiiiiiiiiiiiKK%2Fbancora-0B1A26?style=flat-square&logo=github)](https://github.com/iiiiiiiiiiiiiKK/bancora)
 
@@ -160,7 +160,7 @@ bancora/
 npm run typecheck        # TypeScript strict
 npm run assets:validate  # 10 项数据不变量，606 个资源
 npm run test             # 73 项单元 / 数据测试
-npm run test:e2e         # 33 项真实浏览器检查（需 Chrome + preview）
+npm run test:e2e         # 34 项真实浏览器检查（需 Chrome + preview）
 ```
 
 端到端检查不只验证"按钮有反应"：下载文件与仓库原文件**逐字节比对**、PNG 读取 IHDR 校验尺寸、
@@ -170,7 +170,7 @@ WebP 校验 RIFF/WEBP 魔数、ZIP 解压后比对内部 SVG、剪贴板内容�
 | --- | --- |
 | 类型检查 | 通过 |
 | 单元 / 数据测试 | 9 文件 73 项 |
-| 真实浏览器检查 | 33 / 33 |
+| 真实浏览器检查 | 34 / 34 |
 | 响应式矩阵 | 11 宽度 × 5 页面 = 55 组，0 溢出、0 换行、0 过小点击区 |
 
 ## 部署

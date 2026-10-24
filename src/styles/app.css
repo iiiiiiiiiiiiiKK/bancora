@@ -137,10 +137,12 @@
 .icon-btn {
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: var(--header-btn);
+  height: var(--header-btn);
+  padding: 0;
   border-radius: var(--r-sm);
   color: var(--muted-strong);
+  flex: none;
   transition: background-color 130ms var(--ease), color 130ms var(--ease);
 }
 
@@ -154,14 +156,17 @@
   height: 17px;
 }
 
+/* The X mark is a glyph, not an SVG icon: match the optical weight of the
+   stroke icons by drawing it at the same 17px box as .icon-btn svg. */
 .x-link {
-  width: 34px;
-  height: 34px;
+  width: var(--header-btn);
+  height: var(--header-btn);
   border-radius: var(--r-sm);
-  font-family: var(--font-display);
-  font-size: 0.9375rem;
+  font-size: 1.0625rem;
   line-height: 1;
   color: var(--muted-strong);
+  display: inline-grid;
+  place-items: center;
 }
 
 .x-link:hover {
@@ -2239,10 +2244,9 @@
     font-size: 1.0625rem;
   }
 
-  /* Every header control keeps a 40px touch target. */
-  .icon-btn {
-    width: 40px;
-    height: 40px;
+  /* Every header control keeps a square 40px touch target. */
+  :root {
+    --header-btn: 40px;
   }
 
   .header__actions {
@@ -2616,9 +2620,8 @@
     display: none;
   }
 
-  .header__actions .icon-btn {
-    width: 36px;
-    height: 38px;
+  :root {
+    --header-btn: 34px;
   }
 
   .brand {
