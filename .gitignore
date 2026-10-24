@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .tmp-e2e/
+.last-push.json
 tsconfig.tsbuildinfo
 
 # local test scratch
