@@ -14,7 +14,7 @@ This file is the human-readable index. The generated sources are:
 | `npm run assets:validate` | data invariants against files | 10/10 checks |
 | `npm run test` | Vitest | 9 files, 73 tests passed |
 | `npm run build` | `tsc -b && vite build && postbuild` | success, `dist/` with 606 SVGs + host configs |
-| `npm run test:e2e` | real Chrome against `vite preview` | 31/31 checks |
+| `npm run test:e2e` | real Chrome against `vite preview` | 32/32 checks |
 
 ## What the browser suite verifies (not just "the button clicked")
 

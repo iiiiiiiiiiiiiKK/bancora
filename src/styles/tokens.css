@@ -79,6 +79,8 @@
   --shadow-md: 0 2px 4px rgba(11, 26, 38, 0.04), 0 20px 44px -28px rgba(11, 26, 38, 0.4);
   --shadow-lg: 0 4px 10px rgba(11, 26, 38, 0.06), 0 48px 96px -48px rgba(11, 26, 38, 0.5);
 
+  /* One height for every compact control: sort, segmented groups, chips, small buttons. */
+  --control-h: 34px;
   --header-h: 62px;
   --page-max: 1360px;
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
@@ -379,7 +381,7 @@ hr {
 }
 
 .btn--sm {
-  height: 32px;
+  height: var(--control-h);
   padding: 0 11px;
   font-size: 0.8125rem;
 }
@@ -519,8 +521,8 @@ hr {
 
 .chip--button {
   cursor: pointer;
-  height: 30px;
-  padding: 0 10px;
+  height: var(--control-h);
+  padding: 0 11px;
   background: var(--surface-raised);
   font-family: var(--font-sans);
   font-size: 0.78125rem;
@@ -541,28 +543,47 @@ hr {
 
 .segmented {
   display: inline-flex;
-  padding: 2px;
-  gap: 2px;
-  border: 1px solid var(--line);
+  align-items: stretch;
+  height: var(--control-h);
+  padding: 0;
+  gap: 0;
+  border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
-  background: var(--surface-sunken);
+  background: var(--surface-raised);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
+/* Segments fill the group height, so they read as buttons of exactly the same
+   size as the neighbouring chip and select controls. */
 .segmented button {
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 4px;
+  height: 100%;
+  padding: 0 11px;
+  border-radius: 0;
+  border-right: 1px solid var(--line);
   font-size: 0.75rem;
   font-weight: 560;
   color: var(--muted);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
   transition: background-color 120ms var(--ease), color 120ms var(--ease);
 }
 
-.segmented button[aria-pressed='true'] {
-  background: var(--surface-raised);
+.segmented button:last-child {
+  border-right: 0;
+}
+
+.segmented button:hover {
+  background: var(--surface-sunken);
   color: var(--ink);
-  box-shadow: var(--shadow-xs);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 640;
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 /* ------------------------------------------------------------------ panels */

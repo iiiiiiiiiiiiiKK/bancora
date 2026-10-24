@@ -228,6 +228,29 @@ async function main() {
     return headerHref;
   });
 
+  await test('toolbar controls share one height and baseline', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.explorer__tools .segmented');
+    await page.waitForTimeout(300);
+    const boxes = await page.evaluate(() => {
+      const list = [
+        document.querySelector('.toolbar-select'),
+        document.querySelector('.explorer__tools .segmented'),
+        ...document.querySelectorAll('.explorer__tools .chip--button'),
+      ].filter(Boolean);
+      return list.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { h: Math.round(r.height), top: Math.round(r.top) };
+      });
+    });
+    const heights = [...new Set(boxes.map((b) => b.h))];
+    const tops = [...new Set(boxes.map((b) => b.top))];
+    assert(boxes.length >= 4, `expected at least 4 controls, saw ${boxes.length}`);
+    assert(heights.length === 1, `control heights differ: ${heights.join(', ')}`);
+    assert(tops.length === 1, `controls are not aligned: tops ${tops.join(', ')}`);
+    return `${boxes.length} controls · all ${heights[0]}px tall, tops aligned`;
+  });
+
   await test('variant filter narrows the collection', async () => {
     await page.getByRole('button', { name: /^横版组合/ }).first().click();
     await page.waitForTimeout(250);

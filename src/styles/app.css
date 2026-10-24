@@ -635,9 +635,10 @@
   flex-wrap: wrap;
 }
 
+
 .toolbar-select {
-  height: 32px;
-  padding: 0 28px 0 9px;
+  height: var(--control-h);
+  padding: 0 28px 0 10px;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
   background: var(--surface-raised);
@@ -2271,8 +2272,11 @@
     height: 12px;
   }
 
+  :root {
+    --control-h: 36px;
+  }
+
   .segmented button {
-    height: 32px;
     padding: 0 10px;
     font-size: 0.75rem;
   }
