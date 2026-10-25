@@ -282,6 +282,11 @@ async function main() {
     assert(data.labelTops.length === 1 && data.valueTops.length === 1 && data.hintTops.length === 1, 'stat rows are not aligned');
     assert(data.clipped === 0, 'a stat label or hint is clipped');
     assert(data.values[0] === '606', `unexpected total ${data.values[0]}`);
+    // The four cells must report four different facts, not the same count twice.
+    const distinct = new Set(data.values).size;
+    assert(distinct === 4, `stat cells repeat the same figure: ${data.values.join(' / ')}`);
+    const labels = await page.evaluate(() => [...document.querySelectorAll('.stats .stat__label')].map((e) => e.textContent));
+    assert(new Set(labels).size === 4, `stat labels repeat: ${labels.join(', ')}`);
     return `4 cells · ${data.widths[0]}×${data.heights[0]} · ${data.values.join(' / ')}`;
   });
 

@@ -39,9 +39,14 @@ describe('project governance files', () => {
 
   it('never hard-codes a statistics figure in the hero', () => {
     const stats = read('src/components/StatsBar.tsx');
-    expect(stats).toContain('meta.counts.total');
+    // Every number in the stat strip must come from the generated index.
+    expect(stats).toContain('meta.counts');
+    expect(stats).toContain('documentedNames');
+    expect(stats).toContain('byVariant');
+    expect(stats).toContain('totalBytes');
     expect(stats).not.toMatch(/['"`]606['"`]/);
     expect(stats).not.toMatch(/['"`]422['"`]/);
+    expect(stats).not.toMatch(/['"`]4\.95['"`]/);
   });
 
   it('keeps the legacy npm package untouched', () => {
