@@ -308,6 +308,58 @@ async function main() {
     return `${info.count} controls · all ${info.sizes[0]}`;
   });
 
+  await test('desktop gallery has no boxed white cards and keeps targets clickable', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.card__preview');
+    await page.waitForTimeout(400);
+    const info = await page.evaluate(() => {
+      const card = document.querySelector('.card');
+      const preview = card.querySelector('.card__preview');
+      const tools = [...card.querySelectorAll('.card__tool')];
+      const style = getComputedStyle(card);
+      const pr = preview.getBoundingClientRect();
+      return {
+        cardBg: style.backgroundColor,
+        cardBorder: style.borderTopColor,
+        previewRadius: parseFloat(getComputedStyle(preview).borderTopLeftRadius),
+        previewSize: [Math.round(pr.width), Math.round(pr.height)],
+        toolHeights: [...new Set(tools.map((t) => Math.round(t.getBoundingClientRect().height)))],
+        toolCount: tools.length,
+      };
+    });
+    assert(info.cardBg === 'rgba(0, 0, 0, 0)', `card still paints a background: ${info.cardBg}`);
+    assert(info.previewRadius >= 10, `preview tile lost its radius: ${info.previewRadius}`);
+    assert(info.previewSize[0] > 180, `preview too small: ${info.previewSize.join('x')}`);
+    assert(info.toolCount === 3, `expected 3 card actions, saw ${info.toolCount}`);
+    assert(info.toolHeights.length === 1 && info.toolHeights[0] >= 30, `card actions are uneven: ${info.toolHeights.join(', ')}`);
+    return `${info.previewSize[0]}×${info.previewSize[1]} tile, ${info.toolCount} actions at ${info.toolHeights[0]}px`;
+  });
+
+  await test('hero artwork rail proves the collection above the fold', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.logo-band');
+    await page.waitForTimeout(700);
+    const info = await page.evaluate(() => {
+      const band = document.querySelector('.logo-band');
+      const cells = [...band.querySelectorAll('.logo-band__cell')].filter((c) => c.getBoundingClientRect().width > 0);
+      const imgs = cells.map((c) => c.querySelector('img')).filter(Boolean);
+      const loaded = imgs.filter((i) => i.complete && i.naturalWidth > 0);
+      return {
+        cells: cells.length,
+        loaded: loaded.length,
+        sizes: [...new Set(imgs.map((i) => Math.round(i.getBoundingClientRect().width)))],
+        height: Math.round(band.getBoundingClientRect().height),
+        tone: band.dataset.tone,
+      };
+    });
+    assert(info.cells >= 8, `expected at least 8 rail cells, saw ${info.cells}`);
+    assert(info.loaded === info.cells, `${info.cells - info.loaded} rail logos failed to load`);
+    const spread = Math.max(...info.sizes) - Math.min(...info.sizes);
+    assert(spread <= 3, `rail logos are uneven: ${info.sizes.join(', ')}`);
+    assert(info.height > 40, 'rail collapsed');
+    return `${info.cells} logos · ${info.sizes[0]}px · ${info.tone}`;
+  });
+
   await test('variant filter narrows the collection', async () => {
     await page.getByRole('button', { name: /^横版组合/ }).first().click();
     await page.waitForTimeout(250);

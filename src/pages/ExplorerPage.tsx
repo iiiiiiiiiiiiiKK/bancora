@@ -7,6 +7,7 @@ import { DetailsDialog } from '../components/DetailsDialog';
 import { ExportBasket } from '../components/ExportBasket';
 import { HeroShowcase } from '../components/HeroShowcase';
 import { StatsBar } from '../components/StatsBar';
+import { LogoBand } from '../components/LogoBand';
 import { buildSearchIndex, matchesQuery, sortAssets } from '../lib/search';
 import { fetchSvgText, downloadText } from '../lib/browser';
 import { pushToast } from '../lib/toast';
@@ -138,6 +139,7 @@ export function ExplorerPage() {
           {/* Full-width stat band: spans both hero columns so the bottom of the
               hero reads as one balanced row instead of trailing off to the right. */}
           <StatsBar />
+          <LogoBand assets={assets} />
         </div>
       </section>
 
@@ -206,6 +208,11 @@ export function ExplorerPage() {
             <div>
               {filtered.length > 0 ? (
                 <>
+                  <div className="results__title">
+                    <h2 className="results__heading">{t('results.browseAll')}</h2>
+                    <p className="results__note">{t('results.browseHint')}</p>
+                  </div>
+
                   <div className="results__head">
                     <div className="row" style={{ gap: 6 }}>
                       <button type="button" className="btn btn--sm" onClick={() => selection.addMany(visibleAssets.map((a) => a.id))}>

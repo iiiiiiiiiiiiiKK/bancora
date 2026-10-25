@@ -8,8 +8,8 @@
   color-scheme: light;
 
   /* surfaces */
-  --paper: #f1f3f5;
-  --paper-deep: #e9ecef;
+  --paper: #f7f8f9;
+  --paper-deep: #eef1f3;
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-sunken: #f4f6f8;
@@ -41,7 +41,7 @@
   --focus: #0c6b5b;
 
   /* logo plates */
-  --plate-light: #ffffff;
+  --plate-light: #f7f8f9;
   --plate-light-line: #e6eaee;
   --plate-dark: #0f1822;
   --plate-dark-line: #23303c;
