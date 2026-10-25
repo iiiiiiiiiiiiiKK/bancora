@@ -4,26 +4,25 @@ import { useApp } from '../context/AppContext';
 import { LogoImage } from './LogoImage';
 
 /**
- * A single quiet rail of real logos under the hero statistics.
+ * Featured logos — twelve real assets in a regular grid.
  *
- * Purpose: the hero used to stop at the stat band, which left the first screen
- * feeling like a form rather than a collection. This rail shows twelve genuine
- * assets from the index, so the first screen says "606 logos" visually instead
- * of only numerically.
+ * This replaced a single-row rail. The rail forced twelve cells into one line and
+ * hid the overflow, so at 1440px every artwork was taller than its cell and got
+ * cut off at the top and bottom. A grid with wrapping solves it structurally:
+ * six columns on desktop, four on tablet, two on phones, and every cell keeps a
+ * definite art box so nothing is ever clipped.
  *
- * The rail uses one uniform plate per theme (paper in light, ink in dark) rather
- * than per-asset contrast plates — a mixed rail of light and dark tiles reads as
- * a checkerboard. To keep that safe only artwork that stays visible on the
- * uniform plate is sampled.
+ * Names are shown because a logo wall without names is just decoration; the name
+ * wraps to two lines instead of being ellipsised away.
  */
 export function LogoBand({ assets }: { assets: Asset[] }) {
-  const { preferences } = useApp();
+  const { preferences, t } = useApp();
   const dark = preferences.theme === 'dark';
 
   const picks = useMemo(() => {
     if (assets.length === 0) return [];
-    // Light rail = paper, so dark and mixed artwork is safe.
-    // Dark rail = ink, so light and mixed artwork is safe.
+    // Uniform plate per theme keeps the wall from looking like a checkerboard,
+    // so only artwork that stays visible on that plate is sampled.
     const visible = assets.filter((asset) => {
       const tone = asset.ink?.tone;
       if (!tone) return true;
@@ -33,21 +32,36 @@ export function LogoBand({ assets }: { assets: Asset[] }) {
     const wanted = 12;
     const step = Math.max(1, Math.floor(pool.length / wanted));
     const out: Asset[] = [];
-    for (let i = 0; out.length < wanted && i < pool.length; i += step) {
-      out.push(pool[i]);
-    }
+    for (let i = 0; i < pool.length && out.length < wanted; i += step) out.push(pool[i]);
     return out;
   }, [assets, dark]);
 
   if (picks.length < 6) return null;
 
   return (
-    <div className="logo-band" data-tone={dark ? 'dark' : 'light'} aria-hidden>
-      {picks.map((asset) => (
-        <div className="logo-band__cell" key={asset.id}>
-          <LogoImage asset={asset} plate={dark ? 'dark' : 'light'} loading="lazy" alt="" />
+    <section className="featured" aria-label={t('featured.title')}>
+      <div className="featured__head">
+        <div>
+          <h2 className="featured__title">{t('featured.title')}</h2>
+          <p className="featured__note">{t('featured.note')}</p>
         </div>
-      ))}
-    </div>
+        <span className="featured__count">
+          {picks.length} <span aria-hidden>/</span> {assets.length}
+        </span>
+      </div>
+
+      <ul className="logo-band" data-tone={dark ? 'dark' : 'light'}>
+        {picks.map((asset) => (
+          <li className="logo-band__cell" key={asset.id}>
+            <div className="logo-band__art">
+              <LogoImage asset={asset} plate={dark ? 'dark' : 'light'} loading="lazy" alt="" />
+            </div>
+            <span className="logo-band__name" title={asset.name}>
+              {asset.name}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

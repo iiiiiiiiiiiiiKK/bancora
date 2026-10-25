@@ -273,10 +273,13 @@ async function main() {
     const spans = await page.evaluate(() => {
       const stats = document.querySelector('.stats').getBoundingClientRect();
       const hero = document.querySelector('.hero .shell').getBoundingClientRect();
-      const grid = document.querySelector('.hero__grid').getBoundingClientRect();
-      return { statsW: Math.round(stats.width), gridW: Math.round(grid.width), delta: Math.round(Math.abs(stats.width - grid.width)) };
+      const shell = document.querySelector('.stats-band .shell');
+      const style = getComputedStyle(shell);
+      // Match the inner content box of the shell (its padding is not part of the band).
+      const inner = Math.round(shell.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight));
+      return { statsW: Math.round(stats.width), inner, delta: Math.round(Math.abs(stats.width - inner)) };
     });
-    assert(spans.delta <= 2, `stats band (${spans.statsW}px) does not span the hero grid (${spans.gridW}px)`);
+    assert(spans.delta <= 2, `stats band (${spans.statsW}px) does not match the content width (${spans.inner}px)`);
     assert(data.widths.length === 1, `uneven widths: ${data.widths.join(', ')}`);
     assert(data.heights.length === 1, `uneven heights: ${data.heights.join(', ')}`);
     assert(data.labelTops.length === 1 && data.valueTops.length === 1 && data.hintTops.length === 1, 'stat rows are not aligned');
@@ -340,29 +343,121 @@ async function main() {
     return `${info.previewSize[0]}×${info.previewSize[1]} tile, ${info.toolCount} actions at ${info.toolHeights[0]}px`;
   });
 
-  await test('hero artwork rail proves the collection above the fold', async () => {
+  await test('twelve featured logos render completely in a wrapping grid', async () => {
     await page.goto(BASE, { waitUntil: 'networkidle' });
-    await page.waitForSelector('.logo-band');
+    await page.waitForSelector('.logo-band .logo-band__cell');
     await page.waitForTimeout(700);
     const info = await page.evaluate(() => {
-      const band = document.querySelector('.logo-band');
-      const cells = [...band.querySelectorAll('.logo-band__cell')].filter((c) => c.getBoundingClientRect().width > 0);
-      const imgs = cells.map((c) => c.querySelector('img')).filter(Boolean);
-      const loaded = imgs.filter((i) => i.complete && i.naturalWidth > 0);
+      const cells = [...document.querySelectorAll('.logo-band__cell')];
+      const measure = () =>
+        cells.map((cell) => {
+          const img = cell.querySelector('img');
+          const art = cell.querySelector('.logo-band__art');
+          const name = cell.querySelector('.logo-band__name');
+          const ir = img.getBoundingClientRect();
+          const ar = art.getBoundingClientRect();
+          return {
+            visible: cell.getBoundingClientRect().width > 0,
+            natural: img.naturalWidth,
+            imgW: Math.round(ir.width),
+            imgH: Math.round(ir.height),
+            // entirely inside its art box, and big enough to be recognisable
+            fits: ir.width <= ar.width + 1 && ir.height <= ar.height + 1,
+            tooSmall: ir.width < 24 || ir.height < 12,
+            nameClipped: name ? name.scrollHeight > name.clientHeight + 1 : false,
+          };
+        });
+      const first = measure();
       return {
-        cells: cells.length,
-        loaded: loaded.length,
-        sizes: [...new Set(imgs.map((i) => Math.round(i.getBoundingClientRect().width)))],
-        height: Math.round(band.getBoundingClientRect().height),
-        tone: band.dataset.tone,
+        count: cells.length,
+        cols: getComputedStyle(document.querySelector('.logo-band')).gridTemplateColumns.split(' ').length,
+        visible: first.filter((c) => c.visible).length,
+        loaded: first.filter((c) => c.natural > 0).length,
+        clipped: first.filter((c) => c.visible && !c.fits).length,
+        tiny: first.filter((c) => c.visible && c.tooSmall).length,
+        nameClipped: first.filter((c) => c.nameClipped).length,
       };
     });
-    assert(info.cells >= 8, `expected at least 8 rail cells, saw ${info.cells}`);
-    assert(info.loaded === info.cells, `${info.cells - info.loaded} rail logos failed to load`);
-    const spread = Math.max(...info.sizes) - Math.min(...info.sizes);
-    assert(spread <= 3, `rail logos are uneven: ${info.sizes.join(', ')}`);
-    assert(info.height > 40, 'rail collapsed');
-    return `${info.cells} logos · ${info.sizes[0]}px · ${info.tone}`;
+    assert(info.count === 12, `expected 12 featured logos, saw ${info.count}`);
+    assert(info.visible === 12, `only ${info.visible} of 12 featured logos are visible`);
+    assert(info.loaded === 12, `${12 - info.loaded} featured logos failed to load`);
+    assert(info.clipped === 0, `${info.clipped} featured logos overflow their cell`);
+    assert(info.tiny === 0, `${info.tiny} featured logos render smaller than 24px`);
+    assert(info.nameClipped === 0, `${info.nameClipped} featured names are cut off`);
+    return `12 logos · ${info.cols} columns · nothing clipped`;
+  });
+
+  await test('featured grid reflows to desktop, tablet and phone widths', async () => {
+    const widths = [
+      { w: 1440, min: 5 },
+      { w: 1024, min: 3 },
+      { w: 390, min: 2 },
+    ];
+    const seen = [];
+    for (const target of widths) {
+      const ctx = await browser.newContext({ viewport: { width: target.w, height: 900 }, isMobile: target.w < 500, hasTouch: target.w < 500 });
+      const mp = await ctx.newPage();
+      await mp.goto(BASE, { waitUntil: 'networkidle' });
+      await mp.waitForSelector('.logo-band .logo-band__cell');
+      await mp.waitForTimeout(500);
+      const result = await mp.evaluate(() => {
+        const band = document.querySelector('.logo-band');
+        const cells = [...band.querySelectorAll('.logo-band__cell')];
+        const overflowing = cells.filter((c) => {
+          const img = c.querySelector('img');
+          const art = c.querySelector('.logo-band__art');
+          const ir = img.getBoundingClientRect();
+          const ar = art.getBoundingClientRect();
+          return ir.width === 0 || ir.width > ar.width + 1 || ir.height > ar.height + 1;
+        }).length;
+        return {
+          cols: getComputedStyle(band).gridTemplateColumns.split(' ').length,
+          overflowing,
+          pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+      assert(result.cols >= 2, `${target.w}px: expected a multi-column grid, saw ${result.cols}`);
+      assert(result.cols >= target.min, `${target.w}px: expected at least ${target.min} columns, saw ${result.cols}`);
+      assert(result.overflowing === 0, `${target.w}px: ${result.overflowing} logos overflow their cell`);
+      assert(result.pageOverflow === 0, `${target.w}px: page overflows horizontally by ${result.pageOverflow}px`);
+      seen.push(`${target.w}px→${result.cols}col`);
+      await ctx.close();
+    }
+    return seen.join(' · ');
+  });
+
+  await test('hero gallery artwork stays inside its frame', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.hero-gallery__art img');
+    await page.waitForTimeout(700);
+    const info = await page.evaluate(() => {
+      const imgs = [...document.querySelectorAll('.hero-gallery__art img')];
+      const boxes = imgs.map((img) => {
+        const ir = img.getBoundingClientRect();
+        const ar = img.closest('.hero-gallery__art').getBoundingClientRect();
+        return {
+          w: Math.round(ir.width),
+          h: Math.round(ir.height),
+          fits: ir.width <= ar.width + 1 && ir.height <= ar.height + 1,
+          natural: img.naturalWidth,
+        };
+      });
+      const copy = document.querySelector('.hero__copy').getBoundingClientRect();
+      const gallery = document.querySelector('.hero-gallery').getBoundingClientRect();
+      return {
+        count: boxes.length,
+        zero: boxes.filter((b) => b.w === 0 || b.h === 0).length,
+        overflowing: boxes.filter((b) => !b.fits).length,
+        loaded: boxes.filter((b) => b.natural > 0).length,
+        heightDelta: Math.round(Math.abs(copy.height - gallery.height)),
+      };
+    });
+    assert(info.count >= 4, `expected at least 4 gallery assets, saw ${info.count}`);
+    assert(info.zero === 0, `${info.zero} gallery images have no size`);
+    assert(info.loaded === info.count, `${info.count - info.loaded} gallery images failed to load`);
+    assert(info.overflowing === 0, `${info.overflowing} gallery images overflow their frame`);
+    assert(info.heightDelta <= 2, `hero columns are unbalanced by ${info.heightDelta}px`);
+    return `${info.count} assets · columns balanced within ${info.heightDelta}px`;
   });
 
   await test('variant filter narrows the collection', async () => {

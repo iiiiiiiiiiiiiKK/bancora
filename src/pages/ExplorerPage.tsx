@@ -103,10 +103,14 @@ export function ExplorerPage() {
 
   return (
     <>
+      {/* Hero: asymmetric two-column composition. The copy column carries the
+          value proposition, the gallery column carries the proof. They share a
+          baseline grid and both end on the same hairline, so the block has a
+          clear start, focal point and end. */}
       <section className="hero">
-        <div className="shell">
+        <div className="shell hero__shell">
           <div className="hero__grid">
-            <div>
+            <div className="hero__copy">
               <span className="hero__eyebrow">Open Bank Asset Toolkit</span>
               <h1 className="hero__title">
                 {t('hero.title')}
@@ -131,17 +135,26 @@ export function ExplorerPage() {
                   {t('hero.index')}
                 </a>
               </div>
+              <p className="hero__hint">{t('hero.exploreHint')}</p>
             </div>
 
             <HeroShowcase assets={assets} />
           </div>
-
-          {/* Full-width stat band: spans both hero columns so the bottom of the
-              hero reads as one balanced row instead of trailing off to the right. */}
-          <StatsBar />
-          <LogoBand assets={assets} />
         </div>
       </section>
+
+      {/* Statistics: its own band with real figures, separated from the hero by a
+          hairline instead of being squeezed into the copy column. */}
+      <section className="stats-band">
+        <div className="shell">
+          <StatsBar />
+        </div>
+      </section>
+
+      {/* Featured logos: a real 6×2 grid, not a single squeezed row. */}
+      <div className="shell">
+        <LogoBand assets={assets} />
+      </div>
 
       <ExplorerToolbar
         filters={filters}
