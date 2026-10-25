@@ -49,6 +49,16 @@ describe('project governance files', () => {
     expect(stats).not.toMatch(/['"`]4\.95['"`]/);
   });
 
+  it('never hard-codes counts in the hero copy', () => {
+    const dict = read('src/lib/i18n.ts');
+    // The hero hint is a template: counts are injected from the index, never
+    // typed into the dictionary.
+    const heroCopy = dict.slice(dict.indexOf("'hero.exploreHint'"), dict.indexOf("'hero.exploreHint'") + 200);
+    expect(heroCopy).toContain('{total}');
+    expect(heroCopy).toContain('{named}');
+    expect(heroCopy).not.toMatch(/\b606\b/);
+  });
+
   it('keeps the legacy npm package untouched', () => {
     const pkg = JSON.parse(read('package.json'));
     expect(JSON.stringify(pkg.dependencies)).not.toContain('@icongo/bl');

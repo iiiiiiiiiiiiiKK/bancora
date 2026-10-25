@@ -35,7 +35,7 @@ const DICT = {
     'hero.stat.size': '源文件体积',
     'hero.stat.sizeHint': 'MIT 许可素材',
     'hero.showcaseNote': '真实素材 · 自动适配深浅底色',
-    'hero.exploreHint': '606 个文件名、422 个官方中文名，全部可搜索。',
+    'hero.exploreHint': '{total} 个文件、{named} 个官方中文名，全部可搜索。',
 
     'search.placeholder': '搜索银行名称、文件名或资源 ID…',
     'search.label': '搜索银行 Logo',
@@ -290,7 +290,7 @@ const EN: Partial<Record<DictKey, string>> = {
   'hero.stat.size': 'Source size',
   'hero.stat.sizeHint': 'MIT licensed artwork',
   'hero.showcaseNote': 'Real assets · contrast-aware plates',
-  'hero.exploreHint': '606 files, 422 documented names — all searchable.',
+  'hero.exploreHint': '{total} files, {named} documented names — all searchable.',
   'search.placeholder': 'Search by bank, file name or asset ID…',
   'search.label': 'Search bank logos',
   'search.clear': 'Clear search',

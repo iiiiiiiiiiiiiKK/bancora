@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { formatNumber } from '../lib/format';
 import { DEFAULT_FILTERS, ExplorerToolbar, FilterSidebar, type Filters } from '../components/ExplorerToolbar';
 import { LogoCard } from '../components/LogoCard';
 import { DetailsDialog } from '../components/DetailsDialog';
@@ -135,7 +136,11 @@ export function ExplorerPage() {
                   {t('hero.index')}
                 </a>
               </div>
-              <p className="hero__hint">{t('hero.exploreHint')}</p>
+              <p className="hero__hint">
+                {t('hero.exploreHint')
+                  .replace('{total}', formatNumber(assets.length))
+                  .replace('{named}', formatNumber(assets.filter((a) => a.nameStatus === 'documented').length))}
+              </p>
             </div>
 
             <HeroShowcase assets={assets} />
