@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
+const ROUTER_PREFIX = process.env.BANCORA_BASE || '';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const downloads = join(root, '.tmp-e2e');
 const chrome = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
@@ -151,7 +152,7 @@ async function main() {
   });
 
   await test('about page renders the real asset preview at a usable size', async () => {
-    await page.goto(`${BASE}/about`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}${ROUTER_PREFIX}/about`, { waitUntil: 'networkidle' });
     await page.waitForSelector('.asset-preview img');
     await page.waitForTimeout(400);
     const box = await page.evaluate(() => {
@@ -202,7 +203,7 @@ async function main() {
   await test('mobile menu navigates home and closes itself', async () => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const mp = await ctx.newPage();
-    await mp.goto(`${BASE}/convert`, { waitUntil: 'networkidle' });
+    await mp.goto(`${BASE}${ROUTER_PREFIX}/convert`, { waitUntil: 'networkidle' });
     await mp.waitForTimeout(500);
     await mp.getByRole('button', { name: /打开导航菜单|Open navigation menu/ }).click();
     await mp.waitForTimeout(250);
@@ -211,7 +212,7 @@ async function main() {
     const menuVisible = await mp.locator('#mobile-navigation').isVisible();
     const path = new URL(mp.url()).pathname;
     assert(menuVisible === false, 'mobile menu stayed open after navigating');
-    assert(path.endsWith('/') || path.endsWith('/bancora'), `did not return home: ${path}`);
+    assert(path.endsWith('/') || path.endsWith('/bancora') || path.endsWith('/bancora/'), `did not return home: ${path}`);
     await ctx.close();
     return 'closed + home';
   });
@@ -578,7 +579,7 @@ async function main() {
   });
 
   await test('converter renders a real PNG at the requested size', async () => {
-    await page.goto(`${BASE}/convert`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}${ROUTER_PREFIX}/convert`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: '从 Bancora 选择' }).click();
     await page.getByPlaceholder('按名称、文件或 ID 过滤…').fill('pbc-rect');
     await page.waitForTimeout(400);
@@ -627,8 +628,8 @@ async function main() {
   });
 
   await test('inspector finds real structural problems in an uploaded SVG', async () => {
-    await page.goto(`${BASE}/inspector`, { waitUntil: 'networkidle' });
-    await page.getByRole('button', { name: /我的上传/ }).click();
+    await page.goto(`${BASE}${ROUTER_PREFIX}/inspector`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /上传/ }).click();
     await page.locator('input[type="file"]').first().setInputFiles({
       name: 'unsafe.svg',
       mimeType: 'image/svg+xml',
@@ -694,11 +695,11 @@ async function main() {
 
   await test('all primary navigation links resolve', async () => {
     for (const path of ['/convert', '/inspector', '/developer', '/about']) {
-      await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
+      await page.goto(`${BASE}${ROUTER_PREFIX}${path}`, { waitUntil: 'networkidle' });
       const h1 = await page.locator('h1').first().textContent();
       assert(h1 && h1.length > 5, `no h1 on ${path}`);
     }
-    await page.goto(`${BASE}/this-page-does-not-exist`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}${ROUTER_PREFIX}/this-page-does-not-exist`, { waitUntil: 'networkidle' });
     const notFound = await page.locator('.empty h3').first().textContent();
     assert(notFound?.includes('页面不存在'), 'no 404 state');
     return '4 pages + 404';
@@ -723,7 +724,7 @@ async function main() {
     assert(menuVisible, 'mobile menu did not open');
     await mpage.getByRole('link', { name: '格式转换' }).first().click();
     await mpage.waitForTimeout(600);
-    assert(mpage.url().endsWith('/convert'), `navigation failed: ${mpage.url()}`);
+    assert(mpage.url().includes('/convert'), `navigation failed: ${mpage.url()}`);
     await mpage.goto(BASE, { waitUntil: 'networkidle' });
     await mpage.locator('[data-testid="card-open"]').first().click();
     await mpage.waitForSelector('[role="dialog"]');

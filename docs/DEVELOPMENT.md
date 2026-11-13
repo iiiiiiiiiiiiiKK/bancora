@@ -27,7 +27,8 @@ npm run dev
 | `npm run assets:scan -- --check` | Exits 1 if the generated files are stale (CI gate). |
 | `npm run assets:validate` | Validates the index against the files and the invariants. |
 | `npm run test` | Vitest unit + data-integrity tests. |
-| `npm run test:e2e` | Playwright-core suite against `http://localhost:4173`. |
+| `npm run test:e2e` | Builds a fresh production `dist/`, starts `scripts/serve-dist.mjs` on a free port, runs the Playwright-core suite and cleans up automatically. Set `CHROME_PATH` for a non-default browser. |
+| `npm run test:e2e:raw` | Runs `tests/e2e/run.mjs` against an already-running server (advanced/manual mode). |
 | `npm run brand:assets` | Re-renders `public/brand/og-bancora.png` and `icon-512.png` from real SVGs. |
 | `BANCORA_SITE_URL=https://… npm run seo` | Writes `sitemap.xml` and a robots.txt pointing at it. |
 

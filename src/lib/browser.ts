@@ -10,8 +10,8 @@ export interface FetchResult {
  * Fetch the raw SVG text from the deployment. Always resolves through the
  * public URL so it works identically in dev, preview and production.
  */
-export async function fetchSvgText(url: string): Promise<FetchResult> {
-  const response = await fetch(url, { credentials: 'same-origin' });
+export async function fetchSvgText(url: string, signal?: AbortSignal): Promise<FetchResult> {
+  const response = await fetch(url, { credentials: 'same-origin', signal });
   if (!response.ok) throw new Error(`Request failed with HTTP ${response.status} for ${url}`);
   const text = await response.text();
   if (!/^\s*(?:<\?xml[^>]*\?>\s*)?<svg[\s>]/i.test(text)) {

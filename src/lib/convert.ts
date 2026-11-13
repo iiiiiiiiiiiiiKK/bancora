@@ -9,6 +9,7 @@ export interface ConvertOptions {
   format: OutputFormat;
   background: 'transparent' | string;
   quality?: number;
+  signal?: AbortSignal;
 }
 
 export interface ConvertedResult {
@@ -22,6 +23,7 @@ export interface ConvertedResult {
 
 export const MAX_DIMENSION = 4096;
 export const MIN_DIMENSION = 8;
+export const MAX_CANVAS_PIXELS = 16_777_216; // 4096 × 4096
 
 /**
  * Defence in depth: the SVG is loaded through <img>, which never executes script,
@@ -90,21 +92,57 @@ export function clampDimension(value: number): number {
   return Math.min(MAX_DIMENSION, Math.max(MIN_DIMENSION, Math.round(value)));
 }
 
-function loadImage(source: string): Promise<HTMLImageElement> {
+/** Clamp both sides and limit the RGBA backing store to 64 MiB. */
+export function clampDimensions(width: number, height: number): { width: number; height: number } {
+  let w = clampDimension(width);
+  let h = clampDimension(height);
+  if (w * h > MAX_CANVAS_PIXELS) {
+    const scale = Math.sqrt(MAX_CANVAS_PIXELS / (w * h));
+    w = Math.max(MIN_DIMENSION, Math.floor(w * scale));
+    h = Math.max(MIN_DIMENSION, Math.floor(h * scale));
+    while (w * h > MAX_CANVAS_PIXELS) {
+      if (w >= h) w -= 1;
+      else h -= 1;
+    }
+  }
+  return { width: w, height: h };
+}
+
+function loadImage(source: string, signal?: AbortSignal): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const image = new Image();
     image.decoding = 'async';
-    image.onload = () => {
+    let settled = false;
+    const cleanup = () => {
+      signal?.removeEventListener('abort', onAbort);
+      image.onload = null;
+      image.onerror = null;
       URL.revokeObjectURL(url);
+    };
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      image.src = '';
+      reject(new DOMException('Conversion cancelled', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    image.onload = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(image);
     };
     image.onerror = () => {
-      URL.revokeObjectURL(url);
+      if (settled) return;
+      settled = true;
+      cleanup();
       reject(new Error('The browser could not decode this SVG. It may be malformed or reference missing resources.'));
     };
-    image.src = url;
+    if (signal?.aborted) onAbort();
+    else image.src = url;
   });
 }
 
@@ -112,11 +150,12 @@ export async function convertSvg(
   source: string,
   options: ConvertOptions,
 ): Promise<ConvertedResult> {
-  const width = clampDimension(options.width);
-  const height = clampDimension(options.height);
+  if (options.signal?.aborted) throw new DOMException('Conversion cancelled', 'AbortError');
+  const { width, height } = clampDimensions(options.width, options.height);
   const clean = sanitizeSvgForRender(source);
   const intrinsic = svgIntrinsicSize(clean);
-  const image = await loadImage(clean);
+  const image = await loadImage(clean, options.signal);
+  if (options.signal?.aborted) throw new DOMException('Conversion cancelled', 'AbortError');
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -137,9 +176,30 @@ export async function convertSvg(
   context.drawImage(image, box.offsetX, box.offsetY, box.drawWidth, box.drawHeight);
 
   const mime = options.format === 'png' ? 'image/png' : 'image/webp';
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, mime, options.format === 'webp' ? options.quality ?? 0.92 : undefined),
-  );
+  const blob = await new Promise<Blob | null>((resolve, reject) => {
+    const signal = options.signal;
+    if (signal?.aborted) {
+      reject(new DOMException('Conversion cancelled', 'AbortError'));
+      return;
+    }
+    let settled = false;
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new DOMException('Conversion cancelled', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    canvas.toBlob((result) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (signal?.aborted) reject(new DOMException('Conversion cancelled', 'AbortError'));
+      else resolve(result);
+    }, mime, options.format === 'webp' ? options.quality ?? 0.92 : undefined);
+  });
+  if (options.signal?.aborted) throw new DOMException('Conversion cancelled', 'AbortError');
   if (!blob) {
     throw new Error(
       options.format === 'webp'
@@ -154,8 +214,31 @@ export async function convertSvg(
 
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('Could not read the generated image.'));
+    const signal = options.signal;
+    if (signal?.aborted) { reject(new DOMException('Conversion cancelled', 'AbortError')); return; }
+    let settled = false;
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reader.abort();
+      reject(new DOMException('Conversion cancelled', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    reader.onload = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(String(reader.result));
+    };
+    reader.onerror = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('Could not read the generated image.'));
+    };
+    reader.onabort = onAbort;
     reader.readAsDataURL(blob);
   });
 
@@ -181,11 +264,14 @@ export async function convertBatchToZip(
   onProgress?: (done: number, total: number) => void,
 ): Promise<BatchResult> {
   if (items.length === 0) throw new Error('Nothing to convert.');
+  if (items.length > 200) throw new Error('Batch conversion is limited to 200 SVG files.');
   const zip = new JSZip();
   const used = new Set<string>();
   const files: BatchResult['files'] = [];
 
   for (const [index, item] of items.entries()) {
+    onProgress?.(index, items.length);
+    if (options.signal?.aborted) throw new DOMException('Conversion cancelled', 'AbortError');
     onProgress?.(index, items.length);
     const converted = await convertSvg(item.source, options);
     let base = item.id.replace(/[/\\]/g, '-').replace(/\.svg$/i, '');
@@ -218,6 +304,8 @@ export async function convertBatchToZip(
     ),
   );
 
+  if (options.signal?.aborted) throw new DOMException('Conversion cancelled', 'AbortError');
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  if (options.signal?.aborted) throw new DOMException('Conversion cancelled', 'AbortError');
   return { blob, filename: `bancora-converted-${options.format}.zip`, count: files.length, files };
 }

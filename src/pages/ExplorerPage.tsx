@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { safeStorage } from '../lib/browser';
 import { formatNumber } from '../lib/format';
 import { DEFAULT_FILTERS, ExplorerToolbar, FilterSidebar, type Filters } from '../components/ExplorerToolbar';
 import { LogoCard } from '../components/LogoCard';
@@ -17,13 +18,21 @@ import type { Asset } from '../types/asset';
 import { AlertCircleIcon, ArrowRightIcon, DownloadIcon, FileIcon, FilterIcon, SearchIcon, StarIcon } from '../components/Icons';
 
 const PAGE_SIZE = 72;
+const QUERY_STORAGE_KEY = 'bancora.explorer.query.v1';
+
+function initialQuery(searchParams: URLSearchParams): string {
+  const fromUrl = searchParams.get('q');
+  if (fromUrl !== null) return fromUrl;
+  const stored: unknown = safeStorage.get(QUERY_STORAGE_KEY, '');
+  return typeof stored === 'string' ? stored : '';
+}
 
 export function ExplorerPage() {
   const { assets, loading, error, favorites, selection, preferences, updatePreference, t, lang } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState<Filters>(() => ({
     ...DEFAULT_FILTERS,
-    query: searchParams.get('q') ?? '',
+    query: initialQuery(searchParams),
     collection: (searchParams.get('collection') as Filters['collection']) || 'all',
     favoritesOnly: searchParams.get('favorites') === '1',
   }));
@@ -65,16 +74,28 @@ export function ExplorerPage() {
   }, [filters.collection, filters.variant, filters.quality, filters.favoritesOnly]);
 
   useEffect(() => {
+    const trimmed = filters.query.trim();
+    if (trimmed) safeStorage.set(QUERY_STORAGE_KEY, trimmed);
+    else safeStorage.remove(QUERY_STORAGE_KEY);
+
     const next = new URLSearchParams(searchParams);
-    if (filters.query.trim()) next.set('q', filters.query);
+    if (trimmed) next.set('q', trimmed);
     else next.delete('q');
     if (filters.collection !== 'all') next.set('collection', filters.collection);
     else next.delete('collection');
     if (filters.favoritesOnly) next.set('favorites', '1');
     else next.delete('favorites');
     if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.query, filters.collection, filters.favoritesOnly]);
+  }, [filters.query, filters.collection, filters.favoritesOnly, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const urlQuery = searchParams.get('q');
+    if (urlQuery !== null) {
+      setFilters((current) => current.query === urlQuery ? current : { ...current, query: urlQuery });
+    } else {
+      setFilters((current) => current.query ? { ...current, query: '' } : current);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const wanted = searchParams.get('favorites') === '1';

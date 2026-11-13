@@ -33,8 +33,16 @@ jobs:
       - name: Validate generated index
         run: npm run assets:validate
 
-      - name: Unit tests
-        run: npm run test
+      - name: Typecheck and unit tests
+        run: npm run typecheck && npm run test
+
+      - name: Build root-host dist for browser tests
+        run: npm run build
+
+      - name: Browser E2E (production dist)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: npm run test:e2e
 
       - name: Build for project pages
         env:

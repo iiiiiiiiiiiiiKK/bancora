@@ -2,8 +2,8 @@
 
 This file is the human-readable index. The generated sources are:
 
-- `docs/TEST_REPORT.md` — rewritten by `npm run test:e2e` on every run (24 browser checks).
-- `tests/unit/**` — Vitest suites (unit, ZIP format, SVG analysis, data integrity).
+- `docs/TEST_REPORT.md` — rewritten by `npm run test:e2e` on every run (38 browser checks).
+- `tests/unit/**` — Vitest suites (unit, ZIP format, SVG analysis, data integrity, runtime boundaries).
 
 ## Commands and latest results
 
@@ -12,9 +12,9 @@ This file is the human-readable index. The generated sources are:
 | `npm run typecheck` | `tsc -b` over `src/`, `shared/`, `tests/unit` | clean |
 | `npm run assets:scan` | regenerate index + audit | 606 assets, 0 null country/category |
 | `npm run assets:validate` | data invariants against files | 10/10 checks |
-| `npm run test` | Vitest | 9 files, 73 tests passed |
+| `npm run test` | Vitest | 16 files, 106 tests passed |
 | `npm run build` | `tsc -b && vite build && postbuild` | success, `dist/` with 606 SVGs + host configs |
-| `npm run test:e2e` | real Chrome against `vite preview` | 38/38 checks |
+| `npm run test:e2e` | automatic production build + static server + real Chrome | 38/38 checks |
 
 ## What the browser suite verifies (not just "the button clicked")
 
@@ -45,14 +45,18 @@ This file is the human-readable index. The generated sources are:
 25. A sub-path build (`BANCORA_BASE=/bancora/`) serves a working site from `/bancora/`
     (verified manually; see the deployment section of `docs/DEVELOPMENT.md`).
 
+26. Runtime index validation rejects malformed JSON, duplicate IDs/paths, invalid nested fields and inconsistent aggregate counts before app state is populated.
+27. Persisted preferences are field-whitelisted and malformed storage values fall back to defaults.
+28. Inspector repository scans use deployment-base URLs, support cancellation, and bound uploads to 200 files / 2 MiB per file / 32 MiB per batch.
+29. Converter enforces a 16,777,216-pixel canvas budget and aborts stale preview/batch work; batch ZIP output and cancellation are unit-tested.
+
 ## Environment limitations
 
 - The suite uses `playwright-core` with the locally installed Google Chrome
   (`C:\Program Files\Google\Chrome\Application\chrome.exe`). No browser download was needed.
+- `npm run test:e2e` builds `dist/`, starts the repository's bounded static server on a free local port, waits for readiness, runs the suite, and tears the server down. Set `CHROME_PATH` to use another Chrome binary; use `test:e2e:raw` only when managing the server yourself.
 - Clipboard assertions require the Playwright clipboard permission, granted in the test context.
-- The e2e suite targets `http://localhost:4173`. It does not test a deployed domain because no
+- The e2e suite targets a local static server. It does not test a deployed domain because no
   deployment target or credentials were provided.
 - Lighthouse was not run: it requires a network install not available in this environment.
-- A dedicated automated test for the sub-path build was not added to the suite; it was verified
-  manually with a separate `BANCORA_BASE=/bancora/` build served at `http://localhost:4174/bancora/`
-  (index, previews, snippets and asset URLs all resolved under `/bancora/`).
+- `npm run build:pages` validates the GitHub Pages production build; browser checks run against the root-host build.

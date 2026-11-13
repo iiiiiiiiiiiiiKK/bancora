@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useInspector, type InspectionEntry } from '../hooks/useInspector';
 import { formatBytes } from '../lib/format';
@@ -7,6 +7,7 @@ import { pushToast } from '../lib/toast';
 import { AlertCircleIcon, AlertIcon, CheckIcon, FileIcon, InfoIcon, ShieldIcon, UploadIcon } from '../components/Icons';
 import { LogoImage } from '../components/LogoImage';
 import { resolvePlate } from '../lib/plate';
+import { MAX_INSPECT_BATCH_BYTES, MAX_INSPECT_UPLOAD_BYTES, MAX_INSPECT_UPLOAD_FILES } from '../hooks/useInspector';
 import type { Asset } from '../types/asset';
 
 type Filter = 'all' | 'error' | 'warning' | 'pass';
@@ -32,9 +33,12 @@ export function InspectorPage() {
   const inspector = useInspector();
   const [mode, setMode] = useState<Mode>('repository');
   const [filter, setFilter] = useState<Filter>('all');
-  const [limit, setLimit] = useState(606);
+  const [limit, setLimit] = useState(assets.length);
   const [selected, setSelected] = useState<ReportRow | null>(null);
   const [ran, setRan] = useState(false);
+  const [repoCancelled, setRepoCancelled] = useState(false);
+  const repoAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => repoAbortRef.current?.abort(), []);
 
   const rows = useMemo<ReportRow[]>(() => {
     const source: InspectionEntry[] = mode === 'repository' ? inspector.entries : inspector.uploads;
@@ -92,23 +96,49 @@ export function InspectorPage() {
   const visibleRows = useMemo(() => (filter === 'all' ? rows : rows.filter((row) => row.status === filter)), [rows, filter]);
 
   async function runRepositoryScan() {
-    if (assets.length === 0) return;
-    await inspector.inspectRepository(assets, limit);
-    setRan(true);
-    pushToast('success', t('inspect.done'), `${Math.min(limit, assets.length)} ${t('common.assets')}`);
+    if (assets.length === 0 || inspector.running) return;
+    repoAbortRef.current?.abort();
+    const controller = new AbortController();
+    repoAbortRef.current = controller;
+    setRepoCancelled(false);
+    try {
+      await inspector.inspectRepository(assets, limit, controller.signal);
+      if (!controller.signal.aborted) {
+        setRan(true);
+        pushToast('success', t('inspect.done'), String(Math.min(limit, assets.length)) + ' ' + t('common.assets'));
+      }
+    } catch (error) {
+      if (controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) setRepoCancelled(true);
+      else pushToast('error', t('common.error'), error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      if (repoAbortRef.current === controller) repoAbortRef.current = null;
+    }
   }
-
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const svgs = Array.from(files).filter((file) => file.name.toLowerCase().endsWith('.svg') || file.type === 'image/svg+xml');
-    if (svgs.length === 0) {
-      pushToast('error', lang === 'zh' ? '没有选择 SVG 文件' : 'No SVG files selected');
+    const selectedFiles = Array.from(files);
+    const candidates = selectedFiles.filter((file) => file.name.toLowerCase().endsWith('.svg') || file.type === 'image/svg+xml').slice(0, MAX_INSPECT_UPLOAD_FILES);
+    if (selectedFiles.length > MAX_INSPECT_UPLOAD_FILES) pushToast('error', lang === 'zh' ? '一次最多检查 100 个 SVG' : 'At most 100 SVG files can be inspected at once');
+    if (candidates.some((file) => file.size > MAX_INSPECT_UPLOAD_BYTES)) {
+      pushToast('info', lang === 'zh' ? '超过 2 MiB 的文件会显示为大小限制发现项。' : 'Files over 2 MiB will be reported as size-limit findings.');
+    }
+    if (!candidates.length) {
+      if (!candidates.length) pushToast('error', lang === 'zh' ? '没有选择 SVG 文件' : 'No SVG files selected');
       return;
     }
-    await inspector.inspectFiles(svgs);
-    setMode('upload');
-    setRan(true);
-    pushToast('success', t('inspect.done'), `${svgs.length} ${lang === 'zh' ? '个文件' : 'files'}`);
+    const totalBytes = candidates.reduce((sum, file) => sum + (file.size <= MAX_INSPECT_UPLOAD_BYTES ? file.size : 0), 0);
+    if (totalBytes > MAX_INSPECT_BATCH_BYTES) {
+      pushToast('error', lang === 'zh' ? '上传总量超过 32 MiB 限制，请分批选择。' : 'Upload batch exceeds 32 MiB; select fewer files.');
+      return;
+    }
+    try {
+      await inspector.inspectFiles(candidates);
+      setMode('upload');
+      setRan(true);
+      pushToast('success', t('inspect.done'), candidates.length + ' ' + (lang === 'zh' ? '个文件' : 'files'));
+    } catch (error) {
+      pushToast('error', t('common.error'), error instanceof Error ? error.message : 'Unknown error');
+    }
   }
 
   function exportJson() {
@@ -202,7 +232,7 @@ export function InspectorPage() {
                     <select id="limit" className="select" value={limit} onChange={(event) => setLimit(Number(event.target.value))}>
                       <option value={50}>50</option>
                       <option value={150}>150</option>
-                      <option value={606}>{lang === 'zh' ? '全部 606 个' : 'All 606'}</option>
+                      <option value={assets.length}>{lang === 'zh' ? '全部 ' + assets.length + ' 个' : 'All ' + assets.length}</option>
                     </select>
                   </div>
                   <button
@@ -215,6 +245,8 @@ export function InspectorPage() {
                     {inspector.running ? <span className="spinner" /> : <ShieldIcon />}
                     {inspector.running ? `${t('inspect.running')} ${inspector.progress.done}/${inspector.progress.total}` : t('inspect.run')}
                   </button>
+                  {inspector.running ? <button type="button" className="btn btn--ghost" onClick={() => repoAbortRef.current?.abort()}>{lang === 'zh' ? '取消检查' : 'Cancel scan'}</button> : null}
+                  {repoCancelled ? <span role="status" className="muted">{lang === 'zh' ? '检查已取消' : 'Scan cancelled'}</span> : null}
                   {ran ? (
                     <p className="muted" style={{ fontSize: '0.75rem', alignSelf: 'center' }}>
                       {lang === 'zh' ? '在浏览器内完成，无需服务器。' : 'Checked in your browser — no server round trips.'}
@@ -243,7 +275,7 @@ export function InspectorPage() {
                   <UploadIcon />
                 </div>
                 <strong>{t('inspect.drop')}</strong>
-                <span>{t('inspect.dropHint')}</span>
+                <span>{t('inspect.dropHint')} · max 100 files · 2 MiB each · 32 MiB total</span>
                 <input type="file" accept=".svg,image/svg+xml" multiple hidden onChange={(event) => void handleFiles(event.target.files)} />
                 <span className="btn btn--sm" style={{ marginTop: 4 }}>
                   {t('inspect.browse')}

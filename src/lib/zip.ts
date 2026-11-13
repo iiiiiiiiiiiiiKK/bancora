@@ -96,10 +96,79 @@ export interface BuildOptions {
   signal?: AbortSignal;
 }
 
-export async function buildAssetsZip(
-  assets: Asset[],
-  options: BuildOptions = {},
-): Promise<ZipResult> {
+function abortError(): DOMException {
+  return new DOMException('Export cancelled', 'AbortError');
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw abortError();
+}
+
+/**
+ * Accumulate the JSZip output through its public stream helper. Unlike
+ * generateAsync, this allows us to pause production and reject immediately when
+ * cancellation occurs; no ZIP chunk accumulator is retained after rejection.
+ */
+function generateBlob(
+  zip: JSZip,
+  signal: AbortSignal | undefined,
+  onProgress: (percent: number) => void,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const stream = zip.generateInternalStream({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+      mimeType: 'application/zip',
+    });
+    const chunks: BlobPart[] = [];
+    let settled = false;
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      stream.pause();
+      chunks.length = 0;
+      reject(error);
+    };
+    const onAbort = () => fail(abortError());
+
+    if (signal?.aborted) {
+      fail(abortError());
+      return;
+    }
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+    stream.on('data', (chunk, metadata) => {
+      if (signal?.aborted) {
+        onAbort();
+        return;
+      }
+      chunks.push(chunk as BlobPart);
+      if (typeof metadata?.percent === 'number') onProgress(metadata.percent);
+    });
+    stream.on('error', (error) => fail(error));
+    stream.on('end', () => {
+      if (settled) return;
+      if (signal?.aborted) {
+        onAbort();
+        return;
+      }
+      settled = true;
+      cleanup();
+      resolve(new Blob(chunks, { type: 'application/zip' }));
+      chunks.length = 0;
+    });
+    stream.resume();
+
+    // JSZip progress metadata is exposed by the stream helper as a `data` event.
+    // Per-file progress is the primary UI signal; compression completion is 100%.
+    void onProgress;
+  });
+}
+
+export async function buildAssetsZip(assets: Asset[], options: BuildOptions = {}): Promise<ZipResult> {
   const unique = new Map<string, Asset>();
   for (const asset of assets) unique.set(asset.id, asset);
   const list = [...unique.values()];
@@ -115,9 +184,10 @@ export async function buildAssetsZip(
   const manifest: ZipManifestEntry[] = [];
 
   for (const [index, asset] of list.entries()) {
-    if (options.signal?.aborted) throw new DOMException('Export cancelled', 'AbortError');
+    throwIfAborted(options.signal);
     options.onProgress?.(index, list.length, asset.name);
-    const { text, bytes } = await fetchSvgText(assetUrl(asset));
+    const { text, bytes } = await fetchSvgText(assetUrl(asset), options.signal);
+    throwIfAborted(options.signal);
     const exportName = uniquePath(used, safeZipName(asset.filename.replace(/\.svg$/i, ''), asset.id.replace(/[/\\]/g, '-')), '.svg');
     logos.file(exportName, text);
     manifest.push({
@@ -127,20 +197,13 @@ export async function buildAssetsZip(
       format: asset.format,
       exportPath: `logos/${exportName}`,
       bytes,
-      source: {
-        repository: asset.source.upstream,
-        collection: asset.collection,
-        npmExport: asset.source.npmExport,
-      },
-      license: {
-        code: asset.license.code,
-        trademark: asset.license.trademark,
-        note: asset.license.note,
-      },
+      source: { repository: asset.source.upstream, collection: asset.collection, npmExport: asset.source.npmExport },
+      license: { code: asset.license.code, trademark: asset.license.trademark, note: asset.license.note },
       website: asset.website,
     });
   }
 
+  throwIfAborted(options.signal);
   const generatedAt = new Date().toISOString();
   const manifestDoc = {
     generatedAt,
@@ -153,24 +216,10 @@ export async function buildAssetsZip(
   folder.file('README.txt', README.replace('%DATE%', generatedAt).replace('%COUNT%', String(manifest.length)));
 
   options.onProgress?.(list.length, list.length, 'Writing archive');
-  const blob = await zip.generateAsync(
-    {
-      type: 'blob',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 6 },
-      mimeType: 'application/zip',
-    },
-    (meta) => {
-      options.onProgress?.(list.length, list.length, `Compressing ${Math.round(meta.percent)}%`);
-    },
-  );
-
+  const blob = await generateBlob(zip, options.signal, (percent) => {
+    options.onProgress?.(list.length, list.length, `Compressing ${Math.round(percent)}%`);
+  });
+  throwIfAborted(options.signal);
   const stamp = generatedAt.slice(0, 10).replace(/-/g, '');
-  return {
-    blob,
-    filename: `bancora-export-${stamp}.zip`,
-    files: manifest.length,
-    bytes: blob.size,
-    manifest: manifestDoc,
-  };
+  return { blob, filename: `bancora-export-${stamp}.zip`, files: manifest.length, bytes: blob.size, manifest: manifestDoc };
 }

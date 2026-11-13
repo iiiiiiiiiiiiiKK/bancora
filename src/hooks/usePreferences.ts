@@ -1,45 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { safeStorage } from '../lib/browser';
-import type { Lang } from '../lib/i18n';
-import type { PlatePreference } from '../lib/plate';
+import { normalizePreferences, type Preferences } from '../lib/preferences';
 
-export interface Preferences {
-  theme: 'light' | 'dark';
-  /** auto keeps dark/white artwork visible in both themes. */
-  plate: PlatePreference;
-  compactGrid: boolean;
-  lang: Lang;
-}
+export type { Preferences };
 
 const STORAGE_KEY = 'bancora.preferences.v2';
 const THEME_KEY = 'bancora.theme';
 
-const DEFAULTS: Preferences = {
-  theme: 'light',
-  plate: 'auto',
-  compactGrid: false,
-  lang: 'zh',
-};
-
-function readInitial(): Preferences {
-  const stored = safeStorage.get<Partial<Preferences>>(STORAGE_KEY, {});
-  let theme = stored.theme;
-  if (!theme) {
+export function readInitialPreferences(domTheme?: string): Preferences {
+  let legacyTheme: string | undefined;
+  if (domTheme === undefined && typeof document !== 'undefined') {
     try {
-      const domTheme = document.documentElement.dataset.theme;
-      if (domTheme === 'dark' || domTheme === 'light') theme = domTheme;
+      legacyTheme = document.documentElement.dataset.theme;
     } catch {
-      /* ignore */
+      // Use preference defaults in non-DOM environments.
     }
   }
-  const lang: Lang = stored.lang === 'en' ? 'en' : 'zh';
-  const plate: PlatePreference =
-    stored.plate === 'light' || stored.plate === 'dark' || stored.plate === 'grid' ? stored.plate : 'auto';
-  return { ...DEFAULTS, ...stored, theme: theme === 'dark' ? 'dark' : 'light', plate, lang };
+  const stored: unknown = safeStorage.get<unknown>(STORAGE_KEY, {});
+  return normalizePreferences(stored, domTheme ?? legacyTheme);
 }
 
 export function usePreferences() {
-  const [preferences, setPreferences] = useState<Preferences>(readInitial);
+  const [preferences, setPreferences] = useState<Preferences>(() => readInitialPreferences());
 
   useEffect(() => {
     document.documentElement.dataset.theme = preferences.theme;
@@ -48,12 +30,15 @@ export function usePreferences() {
     try {
       window.localStorage.setItem(THEME_KEY, preferences.theme);
     } catch {
-      /* ignore */
+      // storage might be disabled; current session still works
     }
   }, [preferences]);
 
   const update = useCallback(<K extends keyof Preferences>(key: K, value: Preferences[K]) => {
-    setPreferences((current) => ({ ...current, [key]: value }));
+    setPreferences((current) => {
+      const candidate = { ...current, [key]: value };
+      return normalizePreferences(candidate, current.theme);
+    });
   }, []);
 
   const toggleTheme = useCallback(() => {
@@ -64,8 +49,5 @@ export function usePreferences() {
     setPreferences((current) => ({ ...current, lang: current.lang === 'zh' ? 'en' : 'zh' }));
   }, []);
 
-  return useMemo(
-    () => ({ preferences, update, toggleTheme, toggleLang }),
-    [preferences, update, toggleTheme, toggleLang],
-  );
+  return useMemo(() => ({ preferences, update, toggleTheme, toggleLang }), [preferences, update, toggleTheme, toggleLang]);
 }

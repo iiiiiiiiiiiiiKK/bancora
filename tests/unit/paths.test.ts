@@ -66,8 +66,13 @@ describe('code snippets', () => {
   });
 });
 
-describe('withBase', () => {
+describe('withBase and static asset URLs', () => {
   it('joins paths with the deployment base', () => {
     expect(withBase('/logos/a.svg')).toBe('/logos/a.svg');
+  });
+
+  it('uses the Vite base path for an asset URL', async () => {
+    const { assetUrl } = await import('../../src/lib/paths');
+    expect(assetUrl(sample)).toBe('/logos/abchina-rect.svg');
   });
 });

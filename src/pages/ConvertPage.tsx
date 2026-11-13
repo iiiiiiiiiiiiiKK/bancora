@@ -6,6 +6,7 @@ import {
   convertSvg,
   convertBatchToZip,
   clampDimension,
+  clampDimensions,
   svgIntrinsicSize,
   MAX_DIMENSION,
   MIN_DIMENSION,
@@ -16,6 +17,7 @@ import { fetchSvgText, triggerDownload } from '../lib/browser';
 import { pushToast } from '../lib/toast';
 import { formatBytes } from '../lib/format';
 import { resolvePlate } from '../lib/plate';
+import { MAX_SOURCE_BATCH_BYTES, MAX_SOURCE_FILE_BYTES, MAX_SOURCE_FILES } from '../lib/resource-limits';
 import { DownloadIcon, UploadIcon, XIcon, ImageIcon, ConvertIcon, CheckIcon } from '../components/Icons';
 
 type Source = {
@@ -30,7 +32,6 @@ type Source = {
   intrinsic: { width: number; height: number };
 };
 
-const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 
 export function ConvertPage() {
   const { assets, loading, t, lang, preferences } = useApp();
@@ -46,13 +47,25 @@ export function ConvertPage() {
   const [result, setResult] = useState<{ blob: Blob; width: number; height: number; bytes: number; format: OutputFormat } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [batchWorking, setBatchWorking] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchCancelled, setBatchCancelled] = useState(false);
+  const batchAbortRef = useRef<AbortController | null>(null);
+  const batchRunRef = useRef(0);
   const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0 });
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQuery, setPickerQuery] = useState('');
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  useEffect(() => () => {
+    batchRunRef.current += 1;
+    batchAbortRef.current?.abort();
+    batchAbortRef.current = null;
+  }, []);
+
   const active = sources.find((source) => source.key === activeKey) ?? null;
+  const outputDimensions = clampDimensions(width, height);
+  const selectedPixels = width * height > 16_777_216;
 
   const pickerResults = useMemo(() => {
     const query = pickerQuery.trim().toLowerCase();
@@ -81,13 +94,15 @@ export function ConvertPage() {
       return;
     }
     let cancelled = false;
+    const controller = new AbortController();
     setError(null);
     setResult(null);
     convertSvg(active.text, {
-      width,
-      height,
+      width: outputDimensions.width,
+      height: outputDimensions.height,
       format,
       background: background === 'transparent' ? 'transparent' : color,
+      signal: controller.signal,
     })
       .then((converted) => {
         if (cancelled) return;
@@ -102,8 +117,9 @@ export function ConvertPage() {
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [active, width, height, format, background, color]);
+  }, [active, outputDimensions.width, outputDimensions.height, format, background, color]);
 
   async function addFromLibrary(assetId: string) {
     const asset = assets.find((item) => item.id === assetId);
@@ -137,16 +153,29 @@ export function ConvertPage() {
   }
 
   async function addFiles(files: FileList | File[]) {
-    const list = Array.from(files);
+    const selected = Array.from(files);
+    if (selected.length > MAX_SOURCE_FILES) {
+      pushToast('error', lang === 'zh' ? `单次最多选择 ${MAX_SOURCE_FILES} 个文件` : `Select at most ${MAX_SOURCE_FILES} files at a time`);
+    }
+    const list = selected.slice(0, MAX_SOURCE_FILES);
     const added: Source[] = [];
+    const existingBytes = sources.reduce((sum, source) => sum + source.bytes, 0);
     for (const [index, file] of list.entries()) {
       if (!file.name.toLowerCase().endsWith('.svg') && file.type !== 'image/svg+xml') {
         pushToast('error', lang === 'zh' ? `${file.name} 不是 SVG` : `${file.name} is not an SVG`);
         continue;
       }
-      if (file.size > MAX_UPLOAD_BYTES) {
-        pushToast('error', lang === 'zh' ? `${file.name} 超出大小限制` : `${file.name} is too large`, formatBytes(MAX_UPLOAD_BYTES));
+      if (file.size > MAX_SOURCE_FILE_BYTES) {
+        pushToast('error', lang === 'zh' ? `${file.name} 超出大小限制` : `${file.name} is too large`, formatBytes(MAX_SOURCE_FILE_BYTES));
         continue;
+      }
+      if (sources.length + added.length >= MAX_SOURCE_FILES) {
+        pushToast('error', lang === 'zh' ? `素材总数最多为 ${MAX_SOURCE_FILES} 个` : `At most ${MAX_SOURCE_FILES} sources can be loaded`);
+        break;
+      }
+      if (existingBytes + added.reduce((sum, source) => sum + source.bytes, 0) + file.size > MAX_SOURCE_BATCH_BYTES) {
+        pushToast('error', lang === 'zh' ? '本批次文件合计超过 32 MiB 限制，后续文件已跳过' : 'The 32 MiB batch limit was reached; remaining files were skipped');
+        break;
       }
       const text = await file.text();
       if (!/<svg[\s>]/i.test(text)) {
@@ -186,21 +215,38 @@ export function ConvertPage() {
   }
 
   async function downloadBatch() {
-    if (sources.length === 0) return;
+    if (sources.length === 0 || batchWorking) return;
     setBatchWorking(true);
+    setBatchError(null);
+    setBatchCancelled(false);
     setBatchProgress({ done: 0, total: sources.length });
+    const runId = ++batchRunRef.current;
+    const controller = new AbortController();
+    batchAbortRef.current = controller;
     try {
       const zip = await convertBatchToZip(
         sources.map((source) => ({ id: source.key.replace(/^upload:/, ''), name: source.label, source: source.text })),
-        { width, height, format, background: background === 'transparent' ? 'transparent' : color },
-        (done, total) => setBatchProgress({ done, total }),
+        { width, height, format, background: background === 'transparent' ? 'transparent' : color, signal: controller.signal },
+        (done, total) => {
+          if (runId === batchRunRef.current) setBatchProgress({ done, total });
+        },
       );
+      if (controller.signal.aborted || runId !== batchRunRef.current) return;
       triggerDownload(zip.blob, zip.filename);
       pushToast('success', lang === 'zh' ? `已转换 ${zip.count} 个素材` : `Converted ${zip.count} logos`, formatBytes(zip.blob.size));
     } catch (err) {
-      pushToast('error', lang === 'zh' ? '批量转换失败' : 'Batch conversion failed', err instanceof Error ? err.message : 'Unknown error');
+      if (controller.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
+        if (runId === batchRunRef.current) setBatchCancelled(true);
+      } else if (runId === batchRunRef.current) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        setBatchError(message);
+        pushToast('error', lang === 'zh' ? '批量转换失败' : 'Batch conversion failed', message);
+      }
     } finally {
-      setBatchWorking(false);
+      if (runId === batchRunRef.current) {
+        setBatchWorking(false);
+        batchAbortRef.current = null;
+      }
     }
   }
 
@@ -416,6 +462,7 @@ export function ConvertPage() {
                   </label>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 8, lineHeight: 1.7 }}>{t('convert.notes')}</p>
+                {selectedPixels ? <div className="callout" role="note">{lang === 'zh' ? `输出面积上限为 16,777,216 像素，实际尺寸为 ${outputDimensions.width} × ${outputDimensions.height}。` : `Output is capped at 16,777,216 pixels; actual size is ${outputDimensions.width} × ${outputDimensions.height}.`}</div> : null}
               </div>
             </section>
           </div>
@@ -445,6 +492,8 @@ export function ConvertPage() {
                   )}
                 </div>
 
+                {batchError ? <div className="alert alert--error" role="alert">{batchError}</div> : null}
+                {batchCancelled ? <div className="callout" role="status">{lang === 'zh' ? '批量转换已取消。' : 'Batch conversion cancelled.'}</div> : null}
                 {error ? (
                   <div className="alert alert--error" role="alert">
                     <XIcon />
@@ -461,6 +510,7 @@ export function ConvertPage() {
                     {batchWorking ? <span className="spinner" /> : <DownloadIcon />}
                     {batchWorking ? `${t('convert.converting')} ${batchProgress.done}/${batchProgress.total}` : `${t('convert.convertAll')} (${sources.length})`}
                   </button>
+                  {batchWorking ? <button type="button" className="btn btn--ghost btn--sm" onClick={() => batchAbortRef.current?.abort()}>{lang === 'zh' ? '取消转换' : 'Cancel conversion'}</button> : null}
                   {result ? (
                     <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--muted)' }}>
                       <span className="mono">

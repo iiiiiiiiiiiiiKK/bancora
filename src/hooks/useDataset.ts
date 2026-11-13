@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Dataset } from '../types/asset';
 import { withBase } from '../lib/paths';
+import { validateDataset } from '../lib/dataset-validation';
 
 export type DatasetState =
   | { status: 'loading' }
@@ -9,19 +10,26 @@ export type DatasetState =
 
 let cached: Dataset | null = null;
 let inFlight: Promise<Dataset> | null = null;
+let inFlightController: AbortController | null = null;
 
 async function loadDataset(): Promise<Dataset> {
   if (cached) return cached;
   if (!inFlight) {
+    inFlightController = new AbortController();
     inFlight = (async () => {
-      const response = await fetch(withBase('/data/assets.json'), { credentials: 'same-origin' });
+      const response = await fetch(withBase('/data/assets.json'), { credentials: 'same-origin', signal: inFlightController?.signal });
       if (!response.ok) throw new Error(`Could not load the asset index (HTTP ${response.status}).`);
-      const data = (await response.json()) as Dataset;
-      if (!data || !Array.isArray(data.assets)) throw new Error('The asset index is malformed.');
-      cached = data;
-      return data;
+      const payload: unknown = await response.json();
+      const validation = validateDataset(payload);
+      if (!validation.ok) {
+        const details = validation.issues.map((issue) => issue.path).join(', ');
+        throw new Error(details ? `The asset index is malformed (${details}).` : 'The asset index is malformed.');
+      }
+      cached = validation.dataset;
+      return validation.dataset;
     })().catch((error: unknown) => {
       inFlight = null;
+      inFlightController = null;
       throw error;
     });
   }
@@ -45,6 +53,7 @@ export function useDataset(): DatasetState {
       });
     return () => {
       active = false;
+      // Shared request continues for other consumers; suppress state updates here.
     };
   }, []);
 
@@ -55,4 +64,6 @@ export function useDataset(): DatasetState {
 export function __setDatasetForTests(dataset: Dataset | null) {
   cached = dataset;
   inFlight = null;
+  inFlightController?.abort();
+  inFlightController = null;
 }

@@ -1,5 +1,7 @@
 export type NameStatus = 'documented' | 'tentative';
 export type Variant = 'plain' | 'rect' | 'badge';
+export const COLLECTIONS = ['logos', 'other'] as const;
+export const ASSET_VARIANTS = ['plain', 'rect', 'badge'] as const;
 export type QualityStatus = 'pass' | 'warning' | 'error';
 
 export interface SvgFinding {

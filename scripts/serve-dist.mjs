@@ -2,7 +2,7 @@
    Serves dist/ with an SPA fallback and no caching, on the given port. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, resolve as resolvePath, sep } from 'node:path';
 
 const root = process.argv[3] ?? 'dist';
 const port = Number(process.argv[2] ?? 4180);
@@ -23,7 +23,13 @@ const types = {
 createServer(async (req, res) => {
   const url = decodeURIComponent((req.url ?? '/').split('?')[0]);
   const rel = normalize(url).replace(/^(\.\.[/\\])+/, '');
-  let file = join(root, rel);
+  let file = resolvePath(root, '.' + (rel.startsWith('/') ? rel : '/' + rel));
+  const rootPrefix = resolvePath(root) + sep;
+  if (file !== resolvePath(root) && !file.startsWith(rootPrefix)) {
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    res.end('bad path');
+    return;
+  }
   try {
     const info = await stat(file);
     if (info.isDirectory()) file = join(file, 'index.html');
